@@ -1,0 +1,8 @@
+node_modules
+dist
+.git
+.gitignore
+.vscode
+backend/data.json
+npm-debug.log*
+*.log

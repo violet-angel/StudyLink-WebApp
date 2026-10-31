@@ -1,0 +1,19 @@
+ALTER TABLE study_groups
+  ADD COLUMN IF NOT EXISTS image_url TEXT,
+  ADD COLUMN IF NOT EXISTS who_can_join TEXT,
+  ADD COLUMN IF NOT EXISTS join_requirements JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS group_rules JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS member_benefits JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS new_member_steps JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS communication_channel TEXT,
+  ADD COLUMN IF NOT EXISTS schedule_notes TEXT;
+
+ALTER TABLE sessions
+  ADD COLUMN IF NOT EXISTS agenda JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS prep_notes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS attendance_rules JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+ALTER TABLE resources
+  ADD COLUMN IF NOT EXISTS description TEXT,
+  ADD COLUMN IF NOT EXISTS usage_notes TEXT,
+  ADD COLUMN IF NOT EXISTS audience TEXT;

@@ -1,0 +1,39 @@
+{
+  "name": "studylink",
+  "private": true,
+  "version": "0.1.0",
+  "description": "StudyLink is a mobile-based student study group coordination and academic networking system for university students.",
+  "type": "module",
+  "scripts": {
+    "dev:frontend": "vite",
+    "dev:backend": "node backend/server.js",
+    "dev": "node scripts/dev.js",
+    "server": "node backend/server.js",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/migrate.js --seed",
+    "db:migrate:pg": "node scripts/migrate-pg.js",
+    "db:seed:pg": "node scripts/migrate-pg.js --seed",
+    "import:curated": "node scripts/import-curated-to-pg.js",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@floating-ui/react": "^0.27.20",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "pg": "^8.22.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "concurrently": "^9.0.1",
+    "typescript": "^5.6.0",
+    "vite": "^5.4.0"
+  }
+}

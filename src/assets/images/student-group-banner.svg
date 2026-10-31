@@ -1,0 +1,37 @@
+<svg width="900" height="620" viewBox="0 0 900 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#60a5fa" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+  </defs>
+  <rect width="900" height="620" rx="48" fill="url(#bgGrad)" />
+  <path d="M120 520C120 458 174 404 236 404H664C726 404 780 458 780 520V560H120V520Z" fill="#ffffff" fill-opacity="0.15" />
+  <rect x="120" y="100" width="660" height="380" rx="36" fill="#ffffff" fill-opacity="0.08" />
+  <circle cx="260" cy="220" r="58" fill="#f8fafc" />
+  <circle cx="295" cy="210" r="14" fill="#2563eb" />
+  <path d="M220 280C220 262.326 234.326 248 252 248H348C365.674 248 380 262.326 380 280V320C380 337.674 365.674 352 348 352H252C234.326 352 220 337.674 220 320V280Z" fill="#ffffff" />
+  <rect x="245" y="330" width="140" height="12" rx="6" fill="#cbd5e1" />
+  <rect x="235" y="360" width="170" height="12" rx="6" fill="#cbd5e1" />
+  <rect x="240" y="160" width="120" height="20" rx="10" fill="#ffffff" />
+  <circle cx="530" cy="220" r="58" fill="#f8fafc" />
+  <path d="M470 290C470 272.326 484.326 258 502 258H598C615.674 258 630 272.326 630 290V330C630 347.674 615.674 362 598 362H502C484.326 362 470 347.674 470 330V290Z" fill="#ffffff" />
+  <rect x="505" y="330" width="140" height="12" rx="6" fill="#cbd5e1" />
+  <rect x="495" y="360" width="170" height="12" rx="6" fill="#cbd5e1" />
+  <rect x="500" y="160" width="120" height="20" rx="10" fill="#ffffff" />
+  <rect x="360" y="420" width="180" height="90" rx="28" fill="url(#cardGrad)" />
+  <rect x="420" y="320" width="80" height="110" rx="28" fill="#f8fafc" />
+  <rect x="445" y="340" width="30" height="50" rx="12" fill="#2563eb" />
+  <rect x="250" y="440" width="120" height="18" rx="9" fill="#ffffff" />
+  <rect x="520" y="440" width="120" height="18" rx="9" fill="#ffffff" />
+  <circle cx="500" cy="500" r="30" fill="#ffffff" />
+  <path d="M430 500C430 486.745 441.745 475 455 475H495C508.255 475 520 486.745 520 500V520H430V500Z" fill="#2563eb" />
+  <path d="M120 120H210" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.8" />
+  <path d="M690 140H780" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity="0.8" />
+  <path d="M120 180H180" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.8" />
+  <path d="M660 220H740" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.8" />
+</svg>

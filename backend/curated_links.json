@@ -1,0 +1,20 @@
+{
+  "APT3060": [
+    {
+      "label": "Android Activity lifecycle - official docs",
+      "url": "https://developer.android.com/guide/components/activities/activity-lifecycle",
+      "type": "Note",
+      "source": "developer.android.com",
+      "addedAt": "2026-07-29T22:27:50.293Z",
+      "addedBy": "onyangoeugene@gmail.com"
+    },
+    {
+      "label": "Android Activity lifecycle - official docs",
+      "url": "https://developer.android.com/guide/components/activities/activity-lifecycle",
+      "type": "Note",
+      "source": "developer.android.com",
+      "addedAt": "2026-07-29T22:38:48.455Z",
+      "addedBy": "onyangoeugene@gmail.com"
+    }
+  ]
+}

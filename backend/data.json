@@ -1,0 +1,656 @@
+{
+  "sessions": [
+    {
+      "enrollments": [
+        {
+          "user_id": 4,
+          "email": "simeonodhiambo57@gmail.com",
+          "name": "simeon",
+          "enrolledAt": 1784731115734
+        },
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "enrolledAt": 1785170231359
+        }
+      ],
+      "id": 1,
+      "title": "Intro to Recursion",
+      "time": "09:00",
+      "location": "Science Block LT2",
+      "group": "CS101 Beginners Group",
+      "date": "18",
+      "dayOfWeek": "TOMORROW",
+      "status": "Upcoming"
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "enrolledAt": 1785274482554
+        }
+      ],
+      "id": 2,
+      "title": "Binary Trees & Heaps Deep Dive",
+      "time": "15:30",
+      "location": "Library Room 3A",
+      "group": "Data Structures Study Circle",
+      "date": "19",
+      "dayOfWeek": "FRIDAY, JUNE 19",
+      "status": "Upcoming"
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "enrolledAt": 1784974105750
+        },
+        {
+          "user_id": 2,
+          "email": "eugeneonyango@gmail.com",
+          "name": "violet eugene",
+          "enrolledAt": 1785573185162
+        }
+      ],
+      "id": 3,
+      "title": "APT3065 Sprint Review",
+      "time": "14:00",
+      "location": "Lab A",
+      "group": "APT3065 Project Team",
+      "date": "20",
+      "dayOfWeek": "SATURDAY, JUNE 20",
+      "status": "Upcoming"
+    }
+  ],
+  "groups": [
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "joinedAt": 1783969952755
+        },
+        {
+          "user_id": 4,
+          "email": "simeonodhiambo57@gmail.com",
+          "name": "simeon",
+          "joinedAt": 1784137730084
+        },
+        {
+          "user_id": 2,
+          "email": "eugeneonyango@gmail.com",
+          "name": "violet eugene",
+          "joinedAt": 1785350269925
+        }
+      ],
+      "id": 1,
+      "name": "CS101 Beginners Group",
+      "description": "Weekly study group for introductory CS"
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "joinedAt": 1785170026333
+        },
+        {
+          "user_id": 2,
+          "email": "eugeneonyango@gmail.com",
+          "name": "violet eugene",
+          "joinedAt": 1785350280516
+        }
+      ],
+      "id": 2,
+      "name": "Data Structures Study Circle",
+      "description": "Deep dives into DS topics"
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 4,
+          "email": "simeonodhiambo57@gmail.com",
+          "name": "simeon",
+          "joinedAt": 1784137825849
+        },
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "joinedAt": 1785170054265
+        }
+      ],
+      "id": 3,
+      "name": "test",
+      "description": "test",
+      "course_name": "test",
+      "course_code": "1200",
+      "meeting_type": "In-Person",
+      "image_url": null,
+      "who_can_join": "anyone",
+      "join_requirements": [
+        "test"
+      ],
+      "group_rules": [
+        "test"
+      ],
+      "member_benefits": [
+        "test"
+      ],
+      "new_member_steps": [
+        "test"
+      ],
+      "communication_channel": "watsapp",
+      "schedule_notes": "test",
+      "owner_user_id": 4
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "joinedAt": 1785170069450
+        }
+      ],
+      "id": 4,
+      "name": "business management",
+      "description": "the course introduces basics concepts of business and basic understanding on how businesses are managed",
+      "course_name": "BUS",
+      "course_code": "1010",
+      "meeting_type": "Online",
+      "image_url": "none",
+      "who_can_join": "anybody",
+      "join_requirements": [
+        "working internet",
+        "cooperation"
+      ],
+      "group_rules": [
+        "be ready to learn",
+        "join the group in time",
+        "participate fully"
+      ],
+      "member_benefits": [
+        "you will learn beyond imagination"
+      ],
+      "new_member_steps": [],
+      "communication_channel": "whatsapp",
+      "schedule_notes": "will be in pdf",
+      "owner_user_id": 4
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "joinedAt": 1785170068034
+        }
+      ],
+      "id": 5,
+      "name": "apt3067",
+      "description": "the course is about projects",
+      "course_name": "project course",
+      "course_code": "3067",
+      "meeting_type": "Online",
+      "image_url": null,
+      "who_can_join": "anyone can join",
+      "join_requirements": [
+        "stable internet"
+      ],
+      "group_rules": [
+        "active participations"
+      ],
+      "member_benefits": [
+        "you learn beyond what you know"
+      ],
+      "new_member_steps": [],
+      "communication_channel": "whatsapp",
+      "schedule_notes": null,
+      "owner_user_id": 3
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "joinedAt": 1785170064259
+        }
+      ],
+      "id": 6,
+      "name": "Test",
+      "description": "test",
+      "course_name": "bus",
+      "course_code": "1121",
+      "meeting_type": "Online",
+      "image_url": null,
+      "who_can_join": "anyone",
+      "join_requirements": [],
+      "group_rules": [],
+      "member_benefits": [],
+      "new_member_steps": [],
+      "communication_channel": null,
+      "schedule_notes": null,
+      "owner_user_id": 3
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "joinedAt": 1785343797596
+        }
+      ],
+      "id": 7,
+      "name": "math class",
+      "description": "math classs",
+      "course_name": "math",
+      "course_code": "121212",
+      "meeting_type": "Hybrid",
+      "image_url": "https://www.pexels.com/photo/scenic-view-of-lake-como-from-a-ferry-in-lombardy-37687576/",
+      "who_can_join": null,
+      "join_requirements": [],
+      "group_rules": [],
+      "member_benefits": [],
+      "new_member_steps": [],
+      "communication_channel": null,
+      "schedule_notes": null,
+      "owner_user_id": 5
+    },
+    {
+      "enrollments": [],
+      "id": 8,
+      "name": "warriors",
+      "description": "how business is relating with it",
+      "course_name": "business information sytem",
+      "course_code": "6780",
+      "meeting_type": "Hybrid",
+      "image_url": "https://www.google.com/imgres?q=images&imgurl=https%3A%2F%2Fstatic.vecteezy.com%2Fvite%2Fassets%2Fphoto-masthead-375-BoK_p8LG.webp&imgrefurl=https%3A%2F%2Fwww.vecteezy.com%2Ffree-photos&docid=ibTdn4unYxO9nM&tbnid=7F8_kUgVrrg0YM&vet=12ahUKEwihrMzV7f6VAxVlOPsDHb9ZEcgQnPAOegQIPBAA..i&w=750&h=864&hcb=2&ved=2ahUKEwihrMzV7f6VAxVlOPsDHb9ZEcgQnPAOegQIPBAA",
+      "who_can_join": "anyone",
+      "join_requirements": [
+        "working internet"
+      ],
+      "group_rules": [
+        "keep time",
+        "cordination",
+        "commitment"
+      ],
+      "member_benefits": [
+        "everything is done in group so you get to learn from your peers"
+      ],
+      "new_member_steps": [
+        "just join when you are ready"
+      ],
+      "communication_channel": "whatsapp",
+      "schedule_notes": "access from the learning hub",
+      "owner_user_id": 3
+    },
+    {
+      "id": 9,
+      "name": "lions",
+      "description": "we want to solve maths problems",
+      "course_name": "Mth2045",
+      "course_code": "567",
+      "meeting_type": "Online",
+      "image_url": null,
+      "who_can_join": "anyone",
+      "join_requirements": [
+        "stable working internet"
+      ],
+      "group_rules": [
+        "working in groups",
+        "help each"
+      ],
+      "member_benefits": [
+        "it will ensure you learn beyond expectations"
+      ],
+      "new_member_steps": [
+        "click join group"
+      ],
+      "communication_channel": null,
+      "schedule_notes": null,
+      "owner_user_id": 2,
+      "enrollments": []
+    }
+  ],
+  "resources": [
+    {
+      "enrollments": [
+        {
+          "user_id": 4,
+          "email": "simeonodhiambo57@gmail.com",
+          "name": "simeon",
+          "enrolledAt": 1784730391588
+        },
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "enrolledAt": 1784971209893
+        }
+      ],
+      "id": 1,
+      "title": "Recursion Notes",
+      "type": "pdf",
+      "url": "/assets/recursion.pdf",
+      "downloads": 0
+    },
+    {
+      "enrollments": [
+        {
+          "user_id": 4,
+          "email": "simeonodhiambo57@gmail.com",
+          "name": "simeon",
+          "enrolledAt": 1784730414809
+        },
+        {
+          "user_id": 3,
+          "email": "eugenonyango@gmail.com",
+          "name": "eugen juma",
+          "enrolledAt": 1784971429401
+        }
+      ],
+      "id": 2,
+      "title": "Binary Trees Slides",
+      "type": "ppt",
+      "url": "/assets/trees.pptx",
+      "downloads": 0
+    },
+    {
+      "enrollments": [],
+      "id": 3,
+      "title": "short answers",
+      "resource_type": "Resource",
+      "url": "https://www.youtube.com/shorts/QP1zbmtOjuw",
+      "description": null,
+      "usage_notes": "Uploaded by user.",
+      "audience": "All students",
+      "created_by_user_id": 3
+    },
+    {
+      "enrollments": [],
+      "id": 4,
+      "title": "apt1050",
+      "resource_type": "PDF",
+      "url": "/uploads/1785568196534_APT1050DATABASESYSTEMS-WEEK1.pdf",
+      "description": null,
+      "usage_notes": "Uploaded by user.",
+      "audience": "All students",
+      "created_by_user_id": 3
+    },
+    {
+      "id": 5,
+      "title": "apt2090",
+      "resource_type": "Resource",
+      "url": "/uploads/1785572989866_APT2090_LAB_5_6.docx",
+      "description": null,
+      "usage_notes": "Uploaded by user.",
+      "audience": "All students",
+      "created_by_user_id": 2,
+      "enrollments": []
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "email": "onyangoeugene@gmail.com",
+      "full_name": "Eugene onyango Juma",
+      "password_hash": "",
+      "university": "",
+      "role": "student",
+      "major": "",
+      "year_of_study": "",
+      "bio": ""
+    },
+    {
+      "id": 2,
+      "email": "eugeneonyango@gmail.com",
+      "full_name": "violet eugene",
+      "password_hash": "",
+      "university": "",
+      "role": "student",
+      "major": "",
+      "year_of_study": "",
+      "bio": ""
+    },
+    {
+      "id": 3,
+      "email": "eugenonyango@gmail.com",
+      "full_name": "eugen juma",
+      "password_hash": "",
+      "university": "",
+      "role": "student",
+      "major": "",
+      "year_of_study": "",
+      "bio": ""
+    },
+    {
+      "id": 4,
+      "email": "simeonodhiambo57@gmail.com",
+      "full_name": "simeon",
+      "password_hash": "scrypt$9ad3ce0156815401215f7af27914f222$8bb2f06ede245bf95cfc77481d11e1ff643962e08872ef5cb742828fae25b8918a0d09901010e234e90288be88a7a2f14caead81d3cd39b716a81fa8fd156461",
+      "university": "",
+      "role": "student",
+      "major": "",
+      "year_of_study": "",
+      "bio": ""
+    },
+    {
+      "id": 5,
+      "email": "simeonanyal@gmail.com",
+      "full_name": "simeon",
+      "password_hash": "scrypt$bc29b9c0df2a58075adf0c090c2c3e98$9801546c5be8fb791f85ec86c45b33cfeb2abbce69ad4794a43dfcbb50317ee9aba2007df32d78898c274e199ba46dc7ddabb5307b69f3069f7a11f9c448fccb",
+      "university": "usiu africa",
+      "role": "student",
+      "major": "",
+      "year_of_study": "",
+      "bio": ""
+    },
+    {
+      "id": 1,
+      "email": "demo@studylink.local",
+      "full_name": "StudyLink Demo User",
+      "password_hash": "",
+      "university": "USIU-Africa",
+      "role": "student",
+      "major": "Computer Science",
+      "year_of_study": "Year 3",
+      "bio": "Coordinates course projects and shares revision plans."
+    },
+    {
+      "id": 2,
+      "email": "violet@studylink.local",
+      "full_name": "Talemwa Violet",
+      "password_hash": "",
+      "university": "USIU-Africa",
+      "role": "student",
+      "major": "Computer Science",
+      "year_of_study": "Year 2",
+      "bio": "Enjoys collaborative problem solving and exam prep sessions."
+    },
+    {
+      "id": 3,
+      "email": "eugene@studylink.local",
+      "full_name": "Eugene Juma",
+      "password_hash": "",
+      "university": "USIU-Africa",
+      "role": "student",
+      "major": "Software Engineering",
+      "year_of_study": "Year 3",
+      "bio": "Focuses on project work, dashboards, and presentation planning."
+    },
+    {
+      "id": 4,
+      "email": "amina@studylink.local",
+      "full_name": "Amina Hassan",
+      "password_hash": "",
+      "university": "USIU-Africa",
+      "role": "student",
+      "major": "Applied Technology",
+      "year_of_study": "Year 1",
+      "bio": "Likes peer mentoring and joining new study circles."
+    }
+  ],
+  "courses": [
+    {
+      "id": 1,
+      "code": "APT3065",
+      "category": "Applied Technology",
+      "title": "Mid-Term Project",
+      "description": "Collaborative project planning, research methods, and presentation preparation.",
+      "image_url": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 3",
+      "delivery_mode": "Project Studio"
+    },
+    {
+      "id": 2,
+      "code": "BUS101",
+      "category": "Business",
+      "title": "Introduction to Business",
+      "description": "Understand entrepreneurship, operations, and strategic decision-making.",
+      "image_url": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 1",
+      "delivery_mode": "Blended"
+    },
+    {
+      "id": 3,
+      "code": "CS101",
+      "category": "Computer Science",
+      "title": "Introduction to Computer Science",
+      "description": "Build a strong foundation in programming logic, problem solving, and algorithms.",
+      "image_url": "https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 1",
+      "delivery_mode": "Hybrid"
+    },
+    {
+      "id": 4,
+      "code": "CS201",
+      "category": "Computer Science",
+      "title": "Data Structures & Algorithms",
+      "description": "Explore efficient data handling, sorting, and optimization techniques.",
+      "image_url": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 2",
+      "delivery_mode": "In-Person"
+    },
+    {
+      "id": 5,
+      "code": "CS301",
+      "category": "Computer Science",
+      "title": "Database Systems",
+      "description": "Learn data modeling, SQL, and database design for modern applications.",
+      "image_url": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 3",
+      "delivery_mode": "Lab + Lecture"
+    },
+    {
+      "id": 6,
+      "code": "CS401",
+      "category": "Computer Science",
+      "title": "Software Engineering",
+      "description": "Practice team-based development, software architecture, and quality assurance.",
+      "image_url": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 4",
+      "delivery_mode": "Studio"
+    },
+    {
+      "id": 7,
+      "code": "ENG201",
+      "category": "Communication",
+      "title": "Academic Writing",
+      "description": "Strengthen essay drafting, research, editing, and formal communication skills.",
+      "image_url": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 2",
+      "delivery_mode": "Workshop"
+    },
+    {
+      "id": 8,
+      "code": "MATH101",
+      "category": "Mathematics",
+      "title": "Calculus I",
+      "description": "Review limits, derivatives, and real-world applications in science.",
+      "image_url": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=900&q=80",
+      "level": "Year 1",
+      "delivery_mode": "Lecture"
+    }
+  ],
+  "course_enrollments": [
+    {
+      "course_id": 1,
+      "user_id": 1,
+      "enrolled_at": "2026-06-08T08:30:00.000Z"
+    },
+    {
+      "course_id": 1,
+      "user_id": 3,
+      "enrolled_at": "2026-06-10T11:00:00.000Z"
+    },
+    {
+      "course_id": 3,
+      "user_id": 1,
+      "enrolled_at": "2026-06-06T09:10:00.000Z"
+    },
+    {
+      "course_id": 3,
+      "user_id": 2,
+      "enrolled_at": "2026-06-11T13:20:00.000Z"
+    },
+    {
+      "course_id": 4,
+      "user_id": 2,
+      "enrolled_at": "2026-06-12T15:45:00.000Z"
+    },
+    {
+      "course_id": 4,
+      "user_id": 3,
+      "enrolled_at": "2026-06-13T10:05:00.000Z"
+    },
+    {
+      "course_id": 6,
+      "user_id": 1,
+      "enrolled_at": "2026-06-09T14:15:00.000Z"
+    },
+    {
+      "course_id": 6,
+      "user_id": 4,
+      "enrolled_at": "2026-06-14T07:50:00.000Z"
+    },
+    {
+      "course_id": 8,
+      "user_id": 4,
+      "enrolled_at": "2026-06-15T12:00:00.000Z"
+    },
+    {
+      "course_id": 2,
+      "user_id": 3,
+      "enrolled_at": "2026-07-25T10:05:00.984Z"
+    },
+    {
+      "course_id": 8,
+      "user_id": 3,
+      "enrolled_at": "2026-07-25T10:09:22.442Z"
+    },
+    {
+      "course_id": 3,
+      "user_id": 3,
+      "enrolled_at": "2026-07-27T16:28:30.256Z"
+    },
+    {
+      "course_id": 7,
+      "user_id": 2,
+      "enrolled_at": "2026-08-01T08:23:05.754Z"
+    }
+  ],
+  "contact_messages": [],
+  "group_enrollments": [],
+  "session_enrollments": [],
+  "resource_enrollments": []
+}
