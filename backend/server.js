@@ -1348,22 +1348,31 @@ app.use((_req, res) => {
   res.status(404).json({ message: 'Route not found. Use /api/health or the frontend app.' });
 });
 
-async function start() {
-  if (process.env.NODE_ENV === 'production' && (!process.env.AUTH_SECRET || process.env.AUTH_SECRET === 'dev-auth-secret-change-me')) {
-    throw new Error('AUTH_SECRET must be configured in production.');
-  }
 
+if (
+  process.env.NODE_ENV === 'production' &&
+  (!process.env.AUTH_SECRET ||
+    process.env.AUTH_SECRET === 'dev-auth-secret-change-me')
+) {
+  throw new Error('AUTH_SECRET must be configured in production.');
+}
+
+async function start() {
   await healthcheck();
+
   app.listen(PORT, () => {
-    // eslint-disable-next-line no-console
     console.log(`Backend server listening at http://localhost:${PORT}`);
   });
 }
 
-start().catch((error) => {
-  // eslint-disable-next-line no-console
-  console.error('Failed to start backend server:', error);
-  process.exit(1);
-});
+if (!process.env.VERCEL) {
+  start().catch((error) => {
+    console.error('Failed to start backend server:', error);
+    process.exit(1);
+  });
+}
+
+export default app;
+
 
 
