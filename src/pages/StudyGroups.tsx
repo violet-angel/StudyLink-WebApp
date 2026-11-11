@@ -61,17 +61,30 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
   });
   const currentUser = getStoredUser();
 
-  const loadGroups = async () => {
-    try {
-      const response = await apiFetch('/api/groups');
-      const data = await response.json();
-      setGroups(data.groups || []);
-    } catch {
-      setGroups([]);
-    } finally {
-      setLoading(false);
+  
+const loadGroups = async () => {
+  try {
+    const response = await apiFetch('/api/groups');
+
+    if (!response.ok) {
+      throw new Error(`Failed to load groups: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+
+    if (!Array.isArray(data.groups)) {
+      throw new Error('Invalid group data received.');
+    }
+
+    setGroups(data.groups);
+  } catch (error) {
+    console.error('Error loading study groups:', error);
+    // Preserve previously loaded groups when a request fails.
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     loadGroups();
@@ -324,7 +337,10 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
         </div>
 
         {showGroupForm ? (
-          <div className="management-panel">
+          <div
+            id="group-management-form"
+            className="management-panel"
+          >
             <div className="section-header">
               <h2>{editingGroupId ? 'Edit Group' : 'Create Group'}</h2>
               <button className="text-button" onClick={resetGroupForm}>{editingGroupId ? 'Cancel editing' : 'Close form'}</button>
@@ -494,16 +510,26 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
                 <div className="group-footer">
                   <div className="group-actions">
                     <Link to={`/groups/${group.id}`} className="action-link">View details</Link>
+                    
                     <button
                       type="button"
                       className="action-link"
-                      onClick={() => loadGroupIntoForm(group)}
-                      onMouseDown={() => loadGroupIntoForm(group)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { loadGroupIntoForm(group); } }}
-                      style={{ pointerEvents: 'auto' }}
+                      onClick={() => {
+                        loadGroupIntoForm(group);
+
+                        window.setTimeout(() => {
+                          document
+                            .getElementById('group-management-form')
+                            ?.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'start',
+                            });
+                        }, 100);
+                      }}
                     >
                       Edit
                     </button>
+
                     <button type="button" className="action-link action-danger" onClick={() => deleteGroup(group.id)}>Delete</button>
                   </div>
                   <button
