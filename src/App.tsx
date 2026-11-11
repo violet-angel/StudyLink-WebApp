@@ -6,6 +6,8 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import DiscoverClassmates from './pages/DiscoverClassmates';
+import GroupChat from './pages/GroupChat';
 import Courses from './pages/Courses';
 import CourseDetail from './pages/CourseDetail';
 import AdminAcademic from './pages/AdminAcademic';
@@ -24,6 +26,7 @@ import StudyLinkAI from './pages/StudyLinkAI';
 import './App.css';
 import './workspace.css';
 import { getStoredUser } from './lib/session';
+import DirectMessages from './pages/DirectMessages';
 
 type ProtectedRouteProps = {
   children: ReactNode;
@@ -132,15 +135,20 @@ function App() {
           </button>
         ) : null}
         <Routes>
-          <Route path="/" element={isAuthenticated ? <Navigate to="/schools" replace /> : <Home />} />
+          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />} />
 
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/schools" replace /> : <Login onAuthSuccess={() => setIsAuthenticated(true)} />} />
-          <Route path="/signup" element={isAuthenticated ? <Navigate to="/schools" replace /> : <SignUp onAuthSuccess={() => setIsAuthenticated(true)} />} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onAuthSuccess={() => setIsAuthenticated(true)} />} />
+          <Route path="/signup" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUp onAuthSuccess={() => setIsAuthenticated(true)} />} />
 
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
 
+          <Route path="/groups/:id/chat" element={<ProtectedRoute><GroupChat /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+          <Route path="/discover-classmates" element={ <ProtectedRoute> <DiscoverClassmates /></ProtectedRoute> }/>
+          
+          <Route path="/messages/:studentId" element={<ProtectedRoute>< DirectMessages /></ProtectedRoute>}/>
           <Route path="/schools" element={<ProtectedRoute><Schools /></ProtectedRoute>} />
           <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
           <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />

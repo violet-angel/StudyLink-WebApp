@@ -6,6 +6,8 @@ import { buildMergedCourses, saveSupplementalEnrollmentCode } from '../lib/study
 function Courses() {
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [enrollmentError, setEnrollmentError] = useState('');
+  const [enrollingCourseId, setEnrollingCourseId] =useState<string | number | null>(null);
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSchool, setSelectedSchool] = useState(searchParams.get('school') || 'All schools');
@@ -42,31 +44,65 @@ function Courses() {
     });
   }, [courses, searchTerm, selectedProgram, selectedSchool]);
 
+  
   const handleEnroll = async (course: any) => {
+    setEnrollmentError('');
+    setEnrollingCourseId(course.id);
+
     try {
-      const response = await apiFetch(`/api/courses/${course.id}/enroll`, { method: 'POST' });
-      if (!response.ok) {
-        throw new Error('Fallback to local enrollment');
+      if (!Number.isInteger(Number(course.id)) ||
+          Number(course.id) <= 0) {
+        throw new Error(
+          'This course is not available for server enrolment.'
+        );
       }
 
-      const data = await response.json();
-      const updatedCourse = data.course;
-      setCourses((current) => current.map((item) => (
-        String(item.code).toLowerCase() === String(updatedCourse.code).toLowerCase()
-          ? { ...item, ...updatedCourse, isEnrolled: true }
-          : item
-      )));
-    } catch {
-      saveSupplementalEnrollmentCode(course.code);
-      setCourses((current) => current.map((item) => (
-        item.code === course.code
-          ? { ...item, isEnrolled: true, enrolledCount: Number(item.enrolledCount || 0) + 1 }
-          : item
-      )));
+      const response = await apiFetch(
+        `/api/courses/${course.id}/enroll`,
+        { method: 'POST' }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || 'Unable to enrol in this course.'
+        );
+      }
+
+      if (!data.course?.id || !data.course?.isEnrolled) {
+        throw new Error(
+          'Enrolment could not be verified. Refresh and try again.'
+        );
+      }
+
+      setCourses(current =>
+        current.map(item =>
+          Number(item.id) === Number(data.course.id)
+            ? {
+                ...item,
+                ...data.course,
+                isEnrolled: true
+              }
+            : item
+        )
+      );
+
+    } catch (error) {
+      setEnrollmentError(
+        error instanceof Error
+          ? error.message
+          : 'Course enrolment failed.'
+      );
+
+    } finally {
+      setEnrollingCourseId(null);
     }
   };
 
+
   const enrolledCount = courses.filter((course) => course.isEnrolled).length;
+
 
   return (
     <section className="courses-page workspace-page">
@@ -119,6 +155,13 @@ function Courses() {
           </select>
         </section>
 
+        {enrollmentError && (
+          <div className="error-message" role="alert">
+           {enrollmentError}
+          </div>
+        )}
+
+
         {loading ? (
           <div className="workspace-loading-card">
             <p>Loading course catalog...</p>
@@ -168,13 +211,25 @@ function Courses() {
                     <Link to={`/ask-ai?course=${encodeURIComponent(course.code)}`} className="button button-secondary">
                       Ask StudyLink AI
                     </Link>
+                    
                     <button
                       type="button"
                       onClick={() => handleEnroll(course)}
-                      className={`button ${course.isEnrolled ? 'button-dark' : 'button-primary'}`}
+                      disabled={
+                        enrollingCourseId === course.id ||
+                        course.isEnrolled
+                      }
+                      className={`button ${
+                        course.isEnrolled ? 'button-dark' : 'button-primary'
+                      }`}
                     >
-                      {course.isEnrolled ? 'Enrolled' : 'Enroll now'}
+                      {enrollingCourseId === course.id
+                        ? 'Enrolling...'
+                        : course.isEnrolled
+                          ? 'Enrolled'
+                          : 'Enroll now'}
                     </button>
+
                   </div>
                 </div>
               </article>

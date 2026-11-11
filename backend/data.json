@@ -87,6 +87,12 @@
           "email": "eugeneonyango@gmail.com",
           "name": "violet eugene",
           "joinedAt": 1785350269925
+        },
+        {
+          "user_id": 6,
+          "email": "violettalemwa2@gmail.com",
+          "name": "violet t",
+          "joinedAt": 1794374650048
         }
       ],
       "id": 1,
@@ -106,6 +112,12 @@
           "email": "eugeneonyango@gmail.com",
           "name": "violet eugene",
           "joinedAt": 1785350280516
+        },
+        {
+          "user_id": 6,
+          "email": "violettalemwa2@gmail.com",
+          "name": "violet t",
+          "joinedAt": 1794374645674
         }
       ],
       "id": 2,
@@ -295,6 +307,7 @@
       "owner_user_id": 3
     },
     {
+      "enrollments": [],
       "id": 9,
       "name": "lions",
       "description": "we want to solve maths problems",
@@ -318,8 +331,7 @@
       ],
       "communication_channel": null,
       "schedule_notes": null,
-      "owner_user_id": 2,
-      "enrollments": []
+      "owner_user_id": 2
     }
   ],
   "resources": [
@@ -388,6 +400,7 @@
       "created_by_user_id": 3
     },
     {
+      "enrollments": [],
       "id": 5,
       "title": "apt2090",
       "resource_type": "Resource",
@@ -395,8 +408,7 @@
       "description": null,
       "usage_notes": "Uploaded by user.",
       "audience": "All students",
-      "created_by_user_id": 2,
-      "enrollments": []
+      "created_by_user_id": 2
     }
   ],
   "users": [
@@ -498,6 +510,17 @@
       "major": "Applied Technology",
       "year_of_study": "Year 1",
       "bio": "Likes peer mentoring and joining new study circles."
+    },
+    {
+      "id": 6,
+      "email": "violettalemwa2@gmail.com",
+      "full_name": "violet t",
+      "password_hash": "scrypt$edf6fcd8447d29843051235a8684ab33$0192ebcc3a811b277e3956f1e99b5cda2b4d2496ba6d67dccde12953afbfa6bb18d8fbbfcd088fd2fe0b77ae91cf4b59fbd48836cafc10e96edb527bf4865878",
+      "university": "usiu",
+      "role": "student",
+      "major": "",
+      "year_of_study": "",
+      "bio": ""
     }
   ],
   "courses": [

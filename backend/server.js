@@ -1,3 +1,4 @@
+import { registerStudentFeatures } from './lib/studentFeatures.js';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -348,6 +349,148 @@ app.patch('/api/profile', requireAuth, async (req, res) => {
 
   return res.json(profile);
 });
+
+
+// Check whether two students share an enrolled course.
+async function canMessageClassmate(senderId, recipientId) {
+  const result = await query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM course_enrollments mine
+       JOIN course_enrollments theirs
+         ON mine.course_id = theirs.course_id
+       WHERE mine.user_id = $1
+         AND theirs.user_id = $2
+     ) AS allowed`,
+    [senderId, recipientId]
+  );
+
+  return result.rows[0]?.allowed === true;
+}
+
+// GET: Load a private conversation.
+app.get(
+  '/api/student/direct-messages/:studentId',
+  requireAuth,
+  async (req, res) => {
+    const senderId = Number(req.user.id);
+    const recipientId = Number(req.params.studentId);
+
+    if (
+      !Number.isSafeInteger(recipientId) ||
+      recipientId <= 0 ||
+      recipientId === senderId
+    ) {
+      return res.status(400).json({
+        message: 'Invalid recipient.'
+      });
+    }
+
+    const recipient = await findUserById(recipientId);
+
+    if (!recipient || recipient.role !== 'student') {
+      return res.status(404).json({
+        message: 'Student not found.'
+      });
+    }
+
+    if (!(await canMessageClassmate(senderId, recipientId))) {
+      return res.status(403).json({
+        message: 'You must share an enrolled course to message this student.'
+      });
+    }
+
+    const result = await query(
+      `SELECT
+         id,
+         sender_user_id AS "senderId",
+         recipient_user_id AS "recipientId",
+         body,
+         created_at AS "createdAt"
+       FROM (
+         SELECT *
+         FROM student_direct_messages
+         WHERE
+           (sender_user_id = $1 AND recipient_user_id = $2)
+           OR
+           (sender_user_id = $2 AND recipient_user_id = $1)
+         ORDER BY created_at DESC, id DESC
+         LIMIT 100
+       ) recent
+       ORDER BY created_at ASC, id ASC`,
+      [senderId, recipientId]
+    );
+
+    return res.json({
+      student: {
+        id: recipient.id,
+        name: recipient.full_name
+      },
+      messages: result.rows
+    });
+  }
+);
+
+// POST: Send a private message.
+app.post(
+  '/api/student/direct-messages/:studentId',
+  requireAuth,
+  async (req, res) => {
+    const senderId = Number(req.user.id);
+    const recipientId = Number(req.params.studentId);
+    const body = typeof req.body?.body === 'string'
+      ? req.body.body.trim()
+      : '';
+
+    if (
+      !Number.isSafeInteger(recipientId) ||
+      recipientId <= 0 ||
+      recipientId === senderId
+    ) {
+      return res.status(400).json({
+        message: 'Invalid recipient.'
+      });
+    }
+
+    if (!body || body.length > 2000) {
+      return res.status(400).json({
+        message: 'Message must contain 1–2000 characters.'
+      });
+    }
+
+    const recipient = await findUserById(recipientId);
+
+    if (!recipient || recipient.role !== 'student') {
+      return res.status(404).json({
+        message: 'Student not found.'
+      });
+    }
+
+    if (!(await canMessageClassmate(senderId, recipientId))) {
+      return res.status(403).json({
+        message: 'You must share an enrolled course to message this student.'
+      });
+    }
+
+    const result = await query(
+      `INSERT INTO student_direct_messages
+         (sender_user_id, recipient_user_id, body)
+       VALUES ($1, $2, $3)
+       RETURNING
+         id,
+         sender_user_id AS "senderId",
+         recipient_user_id AS "recipientId",
+         body,
+         created_at AS "createdAt"`,
+      [senderId, recipientId, body]
+    );
+
+    return res.status(201).json({
+      message: result.rows[0]
+    });
+  }
+);
+
 
 app.get('/api/classmates', requireAuth, async (req, res) => {
   const classmates = await listClassmates({
@@ -1283,6 +1426,8 @@ app.post('/api/academic/courses/:id/resources', requireAuth, async (req, res) =>
 
   return res.status(201).json({ resource: result.rows[0] });
 });
+
+registerStudentFeatures({ app, requireAuth, query });
 
 app.get('/api/health', async (_req, res) => {
   try {

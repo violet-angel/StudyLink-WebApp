@@ -9,6 +9,7 @@ const mainNavItems = [
   { label: 'Courses', path: '/courses', icon: '\u{1F4D8}' },
   { label: 'Learning Hub', path: '/learning?view=library', icon: '\u{1F4DA}' },
   { label: 'StudyLink AI', path: '/ask-ai', icon: '\u2726' },
+  { label: 'Discover Classmates', path: '/discover-classmates', icon: '\u{1F465}' },
   { label: 'Study Groups', path: '/groups', icon: '\u{1F465}' },
   { label: 'Sessions', path: '/sessions', icon: '\u{1F5D3}' },
   { label: 'Dashboard', path: '/dashboard', icon: '\u25EB' },
