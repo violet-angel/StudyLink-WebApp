@@ -46,6 +46,8 @@ function Courses() {
 
   
   const handleEnroll = async (course: any) => {
+    console.log('ENROLL CLICKED:', course);
+    console.log('COURSE ID:', course.id);
     setEnrollmentError('');
     setEnrollingCourseId(course.id);
 
