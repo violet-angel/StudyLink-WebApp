@@ -153,6 +153,7 @@ function toGroupSummary(row) {
     memberBenefits: toArray(row.member_benefits),
     newMemberSteps: toArray(row.new_member_steps),
     whoCanJoin: row.who_can_join || '',
+    requiresApproval: Boolean(row.requires_approval),
     communicationChannel: row.communication_channel || '',
     scheduleNotes: row.schedule_notes || '',
     sessionCount: toNumber(row.session_count),
@@ -617,6 +618,7 @@ app.post('/api/groups', requireAuth, async (req, res) => {
     newMemberSteps,
     communicationChannel,
     scheduleNotes,
+    requiresApproval,
   } = req.body;
 
   if (!name) {
@@ -639,7 +641,8 @@ app.post('/api/groups', requireAuth, async (req, res) => {
       communication_channel,
       schedule_notes,
       owner_user_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14)
+      requires_approval
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14, $15)
     RETURNING *;`,
     [
       String(name).trim(),
@@ -656,6 +659,7 @@ app.post('/api/groups', requireAuth, async (req, res) => {
       communicationChannel ? String(communicationChannel).trim() : null,
       scheduleNotes ? String(scheduleNotes).trim() : null,
       req.user.id,
+      requiresApproval === true,
     ],
   );
 
@@ -688,6 +692,7 @@ app.patch('/api/groups/:id', requireAuth, async (req, res) => {
     newMemberSteps,
     communicationChannel,
     scheduleNotes,
+    requiresApproval,
   } = req.body;
 
   await query(
@@ -706,6 +711,7 @@ app.patch('/api/groups/:id', requireAuth, async (req, res) => {
        new_member_steps = COALESCE($11::jsonb, new_member_steps),
        communication_channel = COALESCE($12, communication_channel),
        schedule_notes = COALESCE($13, schedule_notes),
+       requires_approval = COALESCE($14, requires_approval),
        updated_at = NOW()
      WHERE id = $14;`,
     [
@@ -722,6 +728,7 @@ app.patch('/api/groups/:id', requireAuth, async (req, res) => {
       newMemberSteps ? JSON.stringify(toArray(newMemberSteps)) : null,
       communicationChannel ? String(communicationChannel).trim() : null,
       scheduleNotes ? String(scheduleNotes).trim() : null,
+      typeof requiresApproval === 'boolean' ? requiresApproval : null,
       id,
     ],
   );
@@ -752,6 +759,16 @@ app.post('/api/groups/:id/enroll', requireAuth, async (req, res) => {
     return res.status(404).json({ message: 'Group not found' });
   }
 
+  if (
+    group.requires_approval &&
+    !canManageEntity(req, group.owner_user_id)
+  ) {
+    return res.status(403).json({
+      message: 'This group requires approval. Please request to join.'
+    });
+  }
+
+
   await query(
     `INSERT INTO group_enrollments (group_id, user_id)
      VALUES ($1, $2)
@@ -762,6 +779,180 @@ app.post('/api/groups/:id/enroll', requireAuth, async (req, res) => {
   const updated = await loadGroupById(id);
   return res.json({ group: toGroupSummary(updated) });
 });
+
+app.get('/api/groups/:id/my-request', requireAuth, async (req, res) => {
+  try {
+    const groupId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(groupId) || groupId <= 0) {
+      return res.status(400).json({
+        message: 'Invalid group ID.'
+      });
+    }
+
+    const result = await query(
+      `SELECT status
+       FROM group_membership_requests
+       WHERE group_id = $1 AND user_id = $2
+       LIMIT 1`,
+      [groupId, req.user.id]
+    );
+
+    return res.json({
+      status: result.rows[0]?.status || null
+    });
+  } catch (error) {
+    console.error('Failed to load membership status:', error);
+
+    return res.status(500).json({
+      message: 'Unable to retrieve membership status.'
+    });
+  }
+});
+
+// Submit a membership request
+app.post('/api/groups/:id/request-join', requireAuth, async (req, res) => {
+  const groupId = Number(req.params.id);
+  if (!Number.isSafeInteger(groupId) || groupId <= 0) {
+    return res.status(400).json({ message: 'Invalid group ID.' });
+  }
+
+  const group = await loadGroupById(groupId);
+  if (!group) {
+    return res.status(404).json({ message: 'Group not found.' });
+  }
+  if (!group.requires_approval) {
+    return res.status(400).json({ message: 'This group is open for direct joining.' });
+  }
+
+  const existing = await query(
+    'SELECT 1 FROM group_enrollments WHERE group_id=$1 AND user_id=$2',
+    [groupId, req.user.id]
+  );
+  if (existing.rows.length) {
+    return res.status(409).json({ message: 'Already a member.' });
+  }
+
+  const result = await query(
+    `INSERT INTO group_membership_requests
+       (group_id, user_id, status)
+     VALUES ($1, $2, 'pending')
+     ON CONFLICT (group_id, user_id)
+     DO UPDATE SET status='pending',
+       requested_at=NOW(), reviewed_at=NULL, reviewed_by=NULL
+     RETURNING *`,
+    [groupId, req.user.id]
+  );
+
+  return res.status(201).json({
+    message: 'Request submitted.',
+    request: result.rows[0]
+  });
+});
+
+// Group owner views membership requests
+app.get('/api/groups/:id/requests', requireAuth, async (req, res) => {
+  const groupId = Number(req.params.id);
+  if (!Number.isSafeInteger(groupId) || groupId <= 0) {
+    return res.status(400).json({ message: 'Invalid group ID.' });
+  }
+
+  const group = await loadGroupById(groupId);
+  if (!group) return res.status(404).json({ message: 'Group not found.' });
+
+  if (!canManageEntity(req, group.owner_user_id)) {
+    return res.status(403).json({ message: 'Permission denied.' });
+  }
+
+  const result = await query(
+    `SELECT r.id, r.user_id AS "userId",
+       u.full_name AS "studentName", r.status,
+       r.requested_at AS "requestedAt"
+     FROM group_membership_requests r
+     JOIN users u ON u.id = r.user_id
+     WHERE r.group_id=$1
+     ORDER BY r.requested_at DESC`,
+    [groupId]
+  );
+
+  return res.json({ requests: result.rows });
+});
+
+// Approve or reject a membership request
+app.patch('/api/groups/:id/requests/:requestId',
+  requireAuth, async (req, res) => {
+    const groupId = Number(req.params.id);
+    const requestId = Number(req.params.requestId);
+    const { status } = req.body || {};
+
+    if (![groupId, requestId].every(
+      value => Number.isSafeInteger(value) && value > 0
+    )) {
+      return res.status(400).json({ message: 'Invalid ID.' });
+    }
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid decision.' });
+    }
+
+    const group = await loadGroupById(groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found.' });
+
+    if (!canManageEntity(req, group.owner_user_id)) {
+      return res.status(403).json({ message: 'Permission denied.' });
+    }
+
+    const outcome = await withPgClient(async client => {
+      await client.query('BEGIN');
+      try {
+        const result = await client.query(
+          `SELECT * FROM group_membership_requests
+           WHERE id=$1 AND group_id=$2 AND status='pending'
+           FOR UPDATE`,
+          [requestId, groupId]
+        );
+
+        if (!result.rows.length) {
+          await client.query('ROLLBACK');
+          return null;
+        }
+
+        const request = result.rows[0];
+
+        if (status === 'approved') {
+          await client.query(
+            `INSERT INTO group_enrollments (group_id, user_id)
+             VALUES ($1,$2)
+             ON CONFLICT (group_id,user_id) DO NOTHING`,
+            [groupId, request.user_id]
+          );
+        }
+
+        await client.query(
+          `UPDATE group_membership_requests
+           SET status=$1, reviewed_at=NOW(), reviewed_by=$2
+           WHERE id=$3`,
+          [status, req.user.id, requestId]
+        );
+
+        await client.query('COMMIT');
+        return request;
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      }
+    });
+
+    if (!outcome) {
+      return res.status(409).json({
+        message: 'Request not pending or database unavailable.'
+      });
+    }
+
+    return res.json({ message: `Request ${status}.` });
+  }
+);
+
 
 // Prototype AI fetcher endpoint - returns curated/stubbed links for a course/topic
 app.post('/api/ai/fetch', requireAuth, async (req, res) => {

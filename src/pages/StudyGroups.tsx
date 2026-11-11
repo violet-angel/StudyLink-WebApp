@@ -7,6 +7,7 @@ import { getStoredUser } from '../lib/session';
 
 interface StudyGroup {
   id: number;
+  requiresApproval?: boolean;
   name: string;
   course: string;
   courseCode: string;
@@ -44,6 +45,7 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
     name: '',
     description: '',
     courseName: '',
+    
     courseCode: '',
     meetingType: 'Hybrid',
     imageUrl: '',
@@ -55,6 +57,7 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
     communicationChannel: '',
     whatsappLink: '',
     scheduleNotes: '',
+    requiresApproval: false,
   });
   const currentUser = getStoredUser();
 
@@ -105,6 +108,7 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
       communicationChannel: '',
       whatsappLink: '',
       scheduleNotes: '',
+      requiresApproval: false,
     });
   };
 
@@ -128,6 +132,7 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
         communicationChannel: group.communicationChannel || '',
         whatsappLink: (group as any).whatsappLink || '',
         scheduleNotes: group.scheduleNotes || '',
+        requiresApproval: group.requiresApproval ?? false,
       });
       // debug log to help diagnose client-side issues
       // eslint-disable-next-line no-console
@@ -161,6 +166,7 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
       communicationChannel: groupForm.communicationChannel,
       whatsappLink: groupForm.whatsappLink,
       scheduleNotes: groupForm.scheduleNotes,
+      requiresApproval: groupForm.requiresApproval,
     };
 
     try {
@@ -416,6 +422,22 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
                 <input value={groupForm.scheduleNotes} onChange={(event) => setGroupForm((current) => ({ ...current, scheduleNotes: event.target.value }))} />
               </label>
             </div>
+
+
+            <label className="checkbox-control">
+              <input
+                type="checkbox"
+                checked={groupForm.requiresApproval}
+                onChange={(event) =>
+                  setGroupForm((current) => ({
+                    ...current,
+                    requiresApproval: event.target.checked,
+                  }))
+                }
+              />
+              Require membership approval before students can join
+            </label>
+
 
             <div className="form-actions">
               <button type="submit" className="button button-primary">{editingGroupId ? 'Update group' : 'Create group'}</button>

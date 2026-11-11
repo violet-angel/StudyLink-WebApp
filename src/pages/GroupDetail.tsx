@@ -14,6 +14,9 @@ function GroupDetail() {
   const [joinError, setJoinError] = useState('');
   const [joiningGroup, setJoiningGroup] = useState(false);
   const [joinedGroup, setJoinedGroup] = useState(false);
+  const [requestPending, setRequestPending] = useState(false);
+  const [membershipRequests, setMembershipRequests] = useState<any[]>([]);
+  const [canReviewRequests, setCanReviewRequests] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -32,17 +35,124 @@ function GroupDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
+
+const loadMembershipRequests = async () => {
+  if (!id) return;
+
+  try {
+    const response = await apiFetch(`/api/groups/${id}/requests`);
+
+    if (!response.ok) {
+      setCanReviewRequests(false);
+      return;
+    }
+
+    const data = await response.json();
+    setCanReviewRequests(true);
+    setMembershipRequests(data.requests || []);
+  } catch (error) {
+    console.error('Failed to load membership requests:', error);
+  }
+};
+
+useEffect(() => {
+  loadMembershipRequests();
+}, [id]);
+
+const reviewMembershipRequest = async (
+  requestId: number,
+  status: 'approved' | 'rejected'
+) => {
+  try {
+    const response = await apiFetch(
+      `/api/groups/${id}/requests/${requestId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to review request.');
+    }
+
+    await loadMembershipRequests();
+
+    const groupResponse = await apiFetch(`/api/groups/${id}`);
+    if (groupResponse.ok) {
+      const groupData = await groupResponse.json();
+      setGroup(groupData.group);
+    }
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to review membership request.'
+    );
+  }
+};
+
+useEffect(() => {
+  if (!id) return;
+
+  let active = true;
+
+  setRequestPending(false);
+
+  apiFetch(`/api/groups/${id}/my-request`)
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error('Unable to load membership request.');
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (!active) return;
+
+      setRequestPending(data.status === 'pending');
+
+      if (data.status === 'approved') {
+        setJoinedGroup(true);
+      }
+    })
+    .catch((error) => {
+      console.error('Membership status check failed:', error);
+    });
+
+  return () => {
+    active = false;
+  };
+}, [id]);
+
+
   const joinGroup = async (targetGroup: any) => {
     setJoiningGroup(true);
 
     try {
-      const response = await apiFetch(`/api/groups/${targetGroup.id}/enroll`, { method: 'POST' });
+      const requiresApproval = Boolean(targetGroup.requiresApproval);
+
+      const response = await apiFetch(
+        requiresApproval
+          ? `/api/groups/${targetGroup.id}/request-join`
+          : `/api/groups/${targetGroup.id}/enroll`,
+        { method: 'POST' }
+      );
       const data = await response.json();
       if (!response.ok) {
         const message = response.status === 403
           ? 'You do not meet the access requirements for this group.'
           : data?.message || 'Unable to join the group right now.';
         throw new Error(message);
+      }
+
+      if (requiresApproval) {
+        setRequestPending(true);
+        setPendingJoinGroup(null);
+        setAcceptedRequirements(false);
+        setJoinError('');
+        return;
       }
 
       const refreshed = await apiFetch(`/api/groups/${targetGroup.id}`);
@@ -140,14 +250,26 @@ function GroupDetail() {
             </div>
 
             <div className="detail-action-row">
-              <button
+              
+            <button
               className="button button-primary"
               type="button"
-              disabled={joiningGroup || joinedGroup}
+              disabled={joiningGroup || joinedGroup || requestPending}
               onClick={handleJoin}
             >
-              {joinedGroup ? 'Joined' : joiningGroup ? 'Joining…' : group.joinRequirements?.length > 0 ? 'Review requirements' : 'Join this group'}
+              {joinedGroup
+                ? 'Joined'
+                : requestPending
+                  ? 'Request Pending'
+                  : joiningGroup
+                    ? 'Processing...'
+                    : group.requiresApproval
+                      ? 'Request to Join'
+                      : group.joinRequirements?.length > 0
+                        ? 'Review requirements'
+                        : 'Join this group'}
             </button>
+
               {contactLink ? (
                 <a href={contactLink} target="_blank" rel="noreferrer" className="button button-secondary">
                   Open WhatsApp chat
@@ -243,6 +365,63 @@ function GroupDetail() {
             <h2>Related sessions</h2>
             <span className="panel-pill">{group.sessions?.length || 0} sessions</span>
           </div>
+
+{canReviewRequests && (
+  <section className="detail-panel">
+    <h2>Membership Requests</h2>
+
+    {membershipRequests.filter(
+      (request) => request.status === 'pending'
+    ).length === 0 ? (
+      <p>No pending membership requests.</p>
+    ) : (
+      <div className="member-list">
+        {membershipRequests
+          .filter((request) => request.status === 'pending')
+          .map((request) => (
+            <article
+              key={request.id}
+              className="member-list-card"
+            >
+              <div>
+                <strong>{request.studentName}</strong>
+                <p>Request pending approval</p>
+              </div>
+
+              <div className="detail-action-row">
+                <button
+                  type="button"
+                  className="button button-primary"
+                  onClick={() =>
+                    reviewMembershipRequest(
+                      request.id,
+                      'approved'
+                    )
+                  }
+                >
+                  Approve
+                </button>
+
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() =>
+                    reviewMembershipRequest(
+                      request.id,
+                      'rejected'
+                    )
+                  }
+                >
+                  Reject
+                </button>
+              </div>
+            </article>
+          ))}
+      </div>
+    )}
+  </section>
+)}
+
           <div className="detail-card-grid">
             {(group.sessions || []).length > 0 ? (
               group.sessions.map((session: any) => (
