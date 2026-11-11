@@ -27,7 +27,10 @@ const PORT = process.env.PORT || 4000;
 const clientDistPath = path.resolve(process.cwd(), 'dist');
 const clientIndexPath = path.join(clientDistPath, 'index.html');
 const hasClientBuild = fs.existsSync(clientIndexPath);
-const allowedOrigins = String(process.env.CORS_ORIGIN || process.env.VITE_API_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean);
+const allowedOrigins = String(
+  process.env.CORS_ORIGIN ||
+  'https://study-link-web-app.vercel.app,http://localhost:5180'
+).split(',').map(origin => origin.trim()).filter(Boolean);
 
 app.disable('x-powered-by');
 
