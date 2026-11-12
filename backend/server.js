@@ -664,8 +664,15 @@ app.post('/api/groups', requireAuth, async (req, res) => {
     ],
   );
   console.log('GROUP CREATE: INSERT successful, loading saved group');
-  const createdGroup = await loadGroupById(result.rows[0].id);
-  return res.status(201).json({ group: toGroupSummary(createdGroup) });
+  
+return res.status(201).json({
+  group: toGroupSummary({
+    ...result.rows[0],
+    member_count: 0,
+    session_count: 0,
+  }),
+});
+
 });
 
 app.patch('/api/groups/:id', requireAuth, async (req, res) => {
