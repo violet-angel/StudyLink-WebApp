@@ -1235,7 +1235,8 @@ app.get('/api/sessions', requireAuth, async (req, res) => {
   return res.json({
     sessions: result.rows.map(row => ({
       ...toSessionSummary(row),
-      isEnrolled: Boolean(row.is_enrolled)
+      isEnrolled: Boolean(row.is_enrolled),
+      isHost: Number(row.created_by_user_id) === Number(req.user.id)
     }))
   });
 });
@@ -1344,6 +1345,13 @@ if (!canManageEntity(req, groupOwnerId)) {
       req.user.id,
     ],
   );
+  
+await query(
+  `INSERT INTO session_enrollments (session_id, user_id)
+   VALUES ($1, $2)
+   ON CONFLICT (session_id, user_id) DO NOTHING`,
+  [result.rows[0].id, req.user.id]
+);
 
   const created = await loadSessionById(result.rows[0].id);
   return res.status(201).json({ session: toSessionSummary(created) });

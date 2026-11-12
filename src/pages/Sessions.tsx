@@ -20,6 +20,7 @@ interface Session {
   attendanceRules?: string[];
   enrolledCount?: number;
   isEnrolled?: boolean;
+  isHost?: boolean;
 }
 
 function Sessions() {
@@ -349,7 +350,7 @@ function Sessions() {
 
                 <div className="session-actions session-actions-column">
         
-                {!groups.some(
+                {!session.isHost && !groups.some(
                   (group) =>
                     Number(group.id) === Number(session.groupId) &&
                     (group.isMember === true || group.isOwner === true)
@@ -362,26 +363,31 @@ function Sessions() {
                     Join Study Group First
                   </a>
                 ) : (
-                  <button
-                    className="button button-primary"
-                    type="button"
-                    disabled={
-                      enrollingSessionIds.includes(session.id) ||
-                      enrolledSessionIds.includes(session.id) ||
-                      session.isEnrolled === true ||
-                      session.status === 'Completed' ||
-                      session.status === 'Full'
-                    }
-                    onClick={() => handleEnroll(session.id)}
-                  >
-                    {session.isEnrolled || enrolledSessionIds.includes(session.id)
+                  
+                <button
+                  className="button button-primary"
+                  type="button"
+                  disabled={
+                    session.isHost === true ||
+                    session.isEnrolled === true ||
+                    enrollingSessionIds.includes(session.id) ||
+                    enrolledSessionIds.includes(session.id) ||
+                    session.status === 'Completed' ||
+                    session.status === 'Full'
+                  }
+                  onClick={() => handleEnroll(session.id)}
+                >
+                  {session.isHost
+                    ? 'Session Host'
+                    : session.isEnrolled || enrolledSessionIds.includes(session.id)
                       ? 'Enrolled'
                       : enrollingSessionIds.includes(session.id)
                         ? 'Enrolling...'
                         : session.status === 'Completed' || session.status === 'Full'
                           ? 'Registration Closed'
                           : 'Enrol'}
-                  </button>
+                </button>
+
                 )}
 
 
