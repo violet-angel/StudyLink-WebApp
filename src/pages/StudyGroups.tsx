@@ -36,6 +36,7 @@ function StudyGroups({ initialShowForm = false }: StudyGroupsProps) {
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [showGroupForm, setShowGroupForm] = useState(initialShowForm);
   const [loading, setLoading] = useState(true);
+  const [savingGroup, setSavingGroup] = useState(false);
   const [pendingJoinGroup, setPendingJoinGroup] = useState<StudyGroup | null>(null);
   const [acceptedRequirements, setAcceptedRequirements] = useState(false);
   const [joinError, setJoinError] = useState('');
@@ -163,6 +164,8 @@ const loadGroups = async () => {
 
   const saveGroup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (savingGroup) return;
+    setSavingGroup(true);
 
     const payload = {
       name: groupForm.name,
@@ -220,6 +223,9 @@ const loadGroups = async () => {
       console.error(error);
       alert(error instanceof Error ? error.message : 'Could not save the group. Please try again.');
     }
+    finally {
+  setSavingGroup(false);
+}
   };
 
   const deleteGroup = async (groupId: number) => {
@@ -456,7 +462,17 @@ const loadGroups = async () => {
 
 
             <div className="form-actions">
-              <button type="submit" className="button button-primary">{editingGroupId ? 'Update group' : 'Create group'}</button>
+              <button
+                type="submit"
+                className="button button-primary"
+                disabled={savingGroup}
+              >
+                {savingGroup
+                  ? 'Saving...'
+                  : editingGroupId
+                    ? 'Update group'
+                    : 'Create group'}
+              </button>
               {editingGroupId ? <button type="button" className="button button-secondary" onClick={resetGroupForm}>Reset</button> : null}
             </div>
           </form>
