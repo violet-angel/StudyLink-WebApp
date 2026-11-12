@@ -5,6 +5,7 @@ import { addNotification } from '../lib/notifications';
 interface Session {
   id: number;
   title: string;
+  attendanceStatus?: 'present' | 'absent' | 'late' | 'unmarked';
   startsAt?: string;
   time?: string;
   location?: string;
@@ -402,6 +403,19 @@ const markAttendance = async (
                     </div>
                     <span className="session-status session-status-badge">{session.status}</span>
                   </div>
+
+                  {(session.isEnrolled || session.isHost) && (
+                    <p className="session-attendance-status">
+                      <strong>My Attendance: </strong>
+                      {session.attendanceStatus === 'present'
+                        ? 'Present'
+                        : session.attendanceStatus === 'absent'
+                          ? 'Absent'
+                          : session.attendanceStatus === 'late'
+                            ? 'Late'
+                            : 'Not Marked'}
+                    </p>
+                  )}
 
                   <div className="session-meta">
                     <span>{session.startsAt ? new Date(session.startsAt).toLocaleString() : session.time}</span>

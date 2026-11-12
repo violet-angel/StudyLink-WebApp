@@ -1225,7 +1225,14 @@ app.get('/api/sessions', requireAuth, async (req, res) => {
         FROM session_enrollments se
         WHERE se.session_id = s.id
           AND se.user_id = $1
-      ) AS is_enrolled
+      ) AS is_enrolled,
+      (
+        SELECT a.status
+        FROM session_attendance a
+        WHERE a.session_id = s.id
+          AND a.user_id = $1
+        LIMIT 1
+      ) AS attendance_status
      FROM sessions s
      JOIN study_groups g ON g.id = s.group_id
      ORDER BY s.starts_at ASC NULLS LAST, s.id ASC;`,
@@ -1236,7 +1243,8 @@ app.get('/api/sessions', requireAuth, async (req, res) => {
     sessions: result.rows.map(row => ({
       ...toSessionSummary(row),
       isEnrolled: Boolean(row.is_enrolled),
-      isHost: Number(row.created_by_user_id) === Number(req.user.id)
+      isHost: Number(row.created_by_user_id) === Number(req.user.id),
+      attendanceStatus: row.attendance_status || 'unmarked'
     }))
   });
 });
@@ -1537,6 +1545,34 @@ app.post('/api/sessions/:id/enroll', requireAuth, async (req, res) => {
   }
 });
 
+
+app.get('/api/sessions/:id/my-attendance', requireAuth, async (req, res) => {
+  try {
+    const sessionId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(sessionId) || sessionId <= 0) {
+      return res.status(400).json({ message: 'Invalid session ID.' });
+    }
+
+    const result = await query(
+      `SELECT a.status
+       FROM session_attendance a
+       WHERE a.session_id = $1
+         AND a.user_id = $2
+       LIMIT 1`,
+      [sessionId, req.user.id]
+    );
+
+    return res.json({
+      status: result.rows[0]?.status || 'unmarked'
+    });
+  } catch (error) {
+    console.error('Failed to load student attendance:', error);
+    return res.status(500).json({
+      message: 'Unable to load attendance status.'
+    });
+  }
+});
 
 app.get('/api/sessions/:id/attendance', requireAuth, async (req, res) => {
   try {
