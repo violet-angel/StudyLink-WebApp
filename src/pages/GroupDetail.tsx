@@ -251,24 +251,34 @@ useEffect(() => {
 
             <div className="detail-action-row">
               
+            
             <button
               className="button button-primary"
               type="button"
-              disabled={joiningGroup || joinedGroup || requestPending}
+              disabled={
+                joiningGroup ||
+                Boolean(group.isOwner) ||
+                Boolean(group.isMember) ||
+                requestPending ||
+                group.requestStatus === 'pending'
+              }
               onClick={handleJoin}
             >
-              {joinedGroup
-                ? 'Joined'
-                : requestPending
-                  ? 'Request Pending'
-                  : joiningGroup
-                    ? 'Processing...'
-                    : group.requiresApproval
-                      ? 'Request to Join'
-                      : group.joinRequirements?.length > 0
-                        ? 'Review requirements'
-                        : 'Join this group'}
+              {group.isOwner
+                ? 'Group Admin'
+                : group.isMember || joinedGroup
+                  ? 'Joined'
+                  : requestPending || group.requestStatus === 'pending'
+                    ? 'Request Pending'
+                    : joiningGroup
+                      ? 'Processing...'
+                      : group.requiresApproval
+                        ? 'Request to Join'
+                        : group.joinRequirements?.length > 0
+                          ? 'Review requirements'
+                          : 'Join this group'}
             </button>
+
 
               {contactLink ? (
                 <a href={contactLink} target="_blank" rel="noreferrer" className="button button-secondary">

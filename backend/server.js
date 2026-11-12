@@ -545,18 +545,44 @@ app.post('/api/contact', async (req, res) => {
   return res.json({ message: 'Contact request received. Our team will follow up shortly.' });
 });
 
-app.get('/api/groups', requireAuth, async (_req, res) => {
+
+app.get('/api/groups', requireAuth, async (req, res) => {
   const result = await query(
     `SELECT
-      g.*,
-      (SELECT COUNT(*) FROM group_enrollments ge WHERE ge.group_id = g.id) AS member_count,
-      (SELECT COUNT(*) FROM sessions s WHERE s.group_id = g.id) AS session_count
+       g.*,
+       (SELECT COUNT(*)
+        FROM group_enrollments ge
+        WHERE ge.group_id = g.id) AS member_count,
+       (SELECT COUNT(*)
+        FROM sessions s
+        WHERE s.group_id = g.id) AS session_count,
+       EXISTS (
+         SELECT 1 FROM group_enrollments ge
+         WHERE ge.group_id = g.id AND ge.user_id = $1
+       ) AS is_member,
+       (
+         SELECT r.status
+         FROM group_membership_requests r
+         WHERE r.group_id = g.id AND r.user_id = $1
+         LIMIT 1
+       ) AS request_status
      FROM study_groups g
-     ORDER BY g.created_at DESC, g.id DESC;`,
+     ORDER BY g.created_at DESC, g.id DESC`,
+    [req.user.id]
   );
 
-  return res.json({ groups: result.rows.map(toGroupSummary) });
+  return res.json({
+    groups: result.rows.map(row => ({
+      ...toGroupSummary(row),
+      isOwner: Number(row.owner_user_id) === Number(req.user.id),
+      isMember:
+        Boolean(row.is_member) ||
+        Number(row.owner_user_id) === Number(req.user.id),
+      requestStatus: row.request_status || null
+    }))
+  });
 });
+
 
 app.get('/api/groups/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
@@ -564,6 +590,23 @@ app.get('/api/groups/:id', requireAuth, async (req, res) => {
   if (!groupRow) {
     return res.status(404).json({ message: 'Group not found' });
   }
+  const statusResult = await query(
+  `SELECT
+     EXISTS (
+       SELECT 1 FROM group_enrollments
+       WHERE group_id = $1 AND user_id = $2
+     ) AS is_member,
+     (
+       SELECT status
+       FROM group_membership_requests
+       WHERE group_id = $1 AND user_id = $2
+       LIMIT 1
+     ) AS request_status`,
+  [id, req.user.id]
+);
+
+const isOwner =
+  Number(groupRow.owner_user_id) === Number(req.user.id);
 
   const sessionsResult = await query(
     `SELECT
@@ -593,6 +636,9 @@ app.get('/api/groups/:id', requireAuth, async (req, res) => {
   return res.json({
     group: {
       ...toGroupSummary(groupRow),
+      isOwner,
+      isMember: isOwner || Boolean(statusResult.rows[0]?.is_member),
+      requestStatus: statusResult.rows[0]?.request_status || null,
       sessions: sessionsResult.rows.map(toSessionSummary),
       membersList: membersResult.rows.map((row) => ({
         email: row.email,
@@ -665,12 +711,17 @@ app.post('/api/groups', requireAuth, async (req, res) => {
     ],
   );
   console.log('GROUP CREATE: INSERT successful, loading saved group');
-  
+  await query(
+  `INSERT INTO group_enrollments (group_id, user_id)
+   VALUES ($1, $2)
+   ON CONFLICT (group_id, user_id) DO NOTHING`,
+  [result.rows[0].id, req.user.id]
+);
 
 return res.status(201).json({
   group: toGroupSummary({
     ...result.rows[0],
-    member_count: 0,
+    member_count: 1,
     session_count: 0,
   }),
 });

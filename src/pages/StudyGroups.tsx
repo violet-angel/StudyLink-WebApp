@@ -24,6 +24,9 @@ interface StudyGroup {
   whatsappLink?: string;
   scheduleNotes?: string;
   sessionCount?: number;
+  isOwner?: boolean;
+  isMember?: boolean;
+  requestStatus?: 'pending' | 'approved' | 'rejected' | null;
 }
 
 type StudyGroupsProps = {
@@ -250,49 +253,63 @@ const loadGroups = async () => {
     }
   };
 
-  const joinGroup = async (group: StudyGroup) => {
-    setJoiningGroupIds((current) => Array.from(new Set([...current, group.id])));
+   
+const joinGroup = async (group: StudyGroup) => {
+  if (joiningGroupIds.includes(group.id) ||
+      group.isOwner || group.isMember ||
+      group.requestStatus === 'pending') {
+    return;
+  }
 
-    try {
-      const response = await apiFetch(
-  group.requiresApproval
-    ? `/api/groups/${group.id}/request-join`
-    : `/api/groups/${group.id}/enroll`,
-  { method: 'POST' }
-);
-      const data = await response.json();
-      if (!response.ok) {
-        const message = response.status === 403
-          ? 'You do not meet this group’s access requirements.'
-          : data?.message || 'Join failed. Please try again later.';
-        throw new Error(message);
-      }
-      if (group.requiresApproval) {
-        setPendingJoinGroup(null);
-        setAcceptedRequirements(false);
-        setJoinError('');
-        alert('Your request has been submitted. Wait for the group owner to approve it.');
-        return;
-      }
-      setJoinedGroupIds((current) => Array.from(new Set([...current, group.id])));
-      await loadGroups();
-      addNotification({
-        id: `join-${group.id}-${Date.now()}`,
-        title: 'Joined group',
-        message: `You are now enrolled in ${group.name}.`,
-        createdAt: new Date().toISOString(),
-      });
-      setPendingJoinGroup(null);
-      setAcceptedRequirements(false);
-      setJoinError('');
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error(error);
-      setJoinError(error instanceof Error ? error.message : 'Failed to join this group.');
-    } finally {
-      setJoiningGroupIds((current) => current.filter((groupId) => groupId !== group.id));
+  setJoiningGroupIds(current => [...current, group.id]);
+
+  try {
+    const requiresApproval = Boolean(group.requiresApproval);
+
+    const response = await apiFetch(
+      requiresApproval
+        ? `/api/groups/${group.id}/request-join`
+        : `/api/groups/${group.id}/enroll`,
+      { method: 'POST' }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to join group.');
     }
-  };
+
+    setGroups(current =>
+      current.map(item =>
+        item.id === group.id
+          ? {
+              ...item,
+              isMember: !requiresApproval,
+              requestStatus: requiresApproval ? 'pending' : null,
+              members: item.members + (requiresApproval ? 0 : 1),
+            }
+          : item
+      )
+    );
+
+    setPendingJoinGroup(null);
+    setAcceptedRequirements(false);
+    setJoinError('');
+
+  } catch (error) {
+    const message = error instanceof Error
+      ? error.message
+      : 'Unable to process membership.';
+
+    setJoinError(message);
+    alert(message);
+  } finally {
+    setJoiningGroupIds(current =>
+      current.filter(groupId => groupId !== group.id)
+    );
+  }
+};
+
 
   const handleJoinGroup = (group: StudyGroup) => {
     if (group.joinRequirements && group.joinRequirements.length > 0) {
@@ -559,23 +576,31 @@ const loadGroups = async () => {
 
                     <button type="button" className="action-link action-danger" onClick={() => deleteGroup(group.id)}>Delete</button>
                   </div>
+                  
                   <button
                     type="button"
-                    onClick={() => handleJoinGroup(group)}
                     className="button button-primary button-sm"
-                    disabled={joiningGroupIds.includes(group.id) || joinedGroupIds.includes(group.id)}
+                    onClick={() => handleJoinGroup(group)}
+                    disabled={
+                      joiningGroupIds.includes(group.id) ||
+                      Boolean(group.isOwner) ||
+                      Boolean(group.isMember) ||
+                      group.requestStatus === 'pending'
+                    }
                   >
-                    {joinedGroupIds.includes(group.id)
-                      ? 'Joined'
-                      : joiningGroupIds.includes(group.id)
-                        ? 'Joining…'
-                        : group.requiresApproval
-                        ? 'Request to Join'
-                        : group.joinRequirements && group.joinRequirements.length > 0
-                          ? 'Review requirements'
-                          : 'Join group'
-                          }
+                    {group.isOwner
+                      ? 'Group Admin'
+                      : group.isMember
+                        ? 'Joined'
+                        : group.requestStatus === 'pending'
+                          ? 'Request Pending'
+                          : joiningGroupIds.includes(group.id)
+                            ? 'Processing...'
+                            : group.requiresApproval
+                              ? 'Request to Join'
+                              : 'Join Group'}
                   </button>
+
                 </div>
               </article>
             ))}
