@@ -604,6 +604,7 @@ app.get('/api/groups/:id', requireAuth, async (req, res) => {
 });
 
 app.post('/api/groups', requireAuth, async (req, res) => {
+  console.log('GROUP CREATE: Request received');
   const {
     name,
     description,
@@ -624,7 +625,7 @@ app.post('/api/groups', requireAuth, async (req, res) => {
   if (!name) {
     return res.status(400).json({ message: 'Group name is required.' });
   }
-
+  console.log('GROUP CREATE: Starting database INSERT');
   const result = await query(
     `INSERT INTO study_groups (
       name,
@@ -662,7 +663,7 @@ app.post('/api/groups', requireAuth, async (req, res) => {
       requiresApproval === true,
     ],
   );
-
+  console.log('GROUP CREATE: INSERT successful, loading saved group');
   const createdGroup = await loadGroupById(result.rows[0].id);
   return res.status(201).json({ group: toGroupSummary(createdGroup) });
 });
