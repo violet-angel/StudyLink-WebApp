@@ -19,11 +19,15 @@ interface Session {
   prepNotes?: string[];
   attendanceRules?: string[];
   enrolledCount?: number;
+  isEnrolled?: boolean;
 }
 
 function Sessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
+  const managedGroups = groups.filter(
+  (group) => group.isOwner === true
+  );
   const [loading, setLoading] = useState(true);
   const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
   const [showSessionForm, setShowSessionForm] = useState(false);
@@ -82,6 +86,7 @@ function Sessions() {
 
   const loadSessionIntoForm = (session: Session) => {
     setEditingSessionId(session.id);
+    setShowSessionForm(true);
     setSessionForm({
       groupId: String(session.groupId || ''),
       title: session.title || '',
@@ -205,9 +210,15 @@ function Sessions() {
             <h2>Schedule sessions</h2>
             <p className="page-description">Only open the session form when you're ready to create or edit a schedule.</p>
           </div>
-          <button className="button button-primary" onClick={() => setShowSessionForm(true)}>
+          {managedGroups.length > 0 && (
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={() => setShowSessionForm(true)}
+          >
             {editingSessionId ? 'Edit session' : 'New session'}
           </button>
+        )}
         </div>
 
         {showSessionForm ? (
@@ -223,9 +234,11 @@ function Sessions() {
                 <span>Group</span>
                 <select value={sessionForm.groupId} onChange={(event) => setSessionForm((current) => ({ ...current, groupId: event.target.value }))} required>
                   <option value="">Select a group</option>
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>{group.name}</option>
-                  ))}
+                  {managedGroups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
                 </select>
               </label>
               <label>
@@ -287,6 +300,7 @@ function Sessions() {
         ) : (
           <div className="sessions-list session-board">
             {sessions.map((session) => (
+ 
               <article key={session.id} className="session-card polished-session-card">
                 <div className="session-date-block">
                   <p className="session-month">{session.month || new Date(session.startsAt || Date.now()).toLocaleDateString(undefined, { month: 'short' })}</p>
@@ -334,23 +348,72 @@ function Sessions() {
                 </div>
 
                 <div className="session-actions session-actions-column">
+        
+                {!groups.some(
+                  (group) =>
+                    Number(group.id) === Number(session.groupId) &&
+                    (group.isMember === true || group.isOwner === true)
+                ) && !session.isEnrolled ? (
+
+                  <a
+                    href={`/groups/${session.groupId}`}
+                    className="button button-secondary"
+                  >
+                    Join Study Group First
+                  </a>
+                ) : (
                   <button
                     className="button button-primary"
                     type="button"
-                    disabled={enrollingSessionIds.includes(session.id) || enrolledSessionIds.includes(session.id)}
+                    disabled={
+                      enrollingSessionIds.includes(session.id) ||
+                      enrolledSessionIds.includes(session.id) ||
+                      session.isEnrolled === true ||
+                      session.status === 'Completed' ||
+                      session.status === 'Full'
+                    }
                     onClick={() => handleEnroll(session.id)}
                   >
-                    {enrolledSessionIds.includes(session.id)
+                    {session.isEnrolled || enrolledSessionIds.includes(session.id)
                       ? 'Enrolled'
                       : enrollingSessionIds.includes(session.id)
-                        ? 'Enrolling…'
-                        : 'Enroll'}
+                        ? 'Enrolling...'
+                        : session.status === 'Completed' || session.status === 'Full'
+                          ? 'Registration Closed'
+                          : 'Enrol'}
                   </button>
-                  <button type="button" className="button button-secondary" onClick={() => loadSessionIntoForm(session)}>Edit</button>
-                  <button type="button" className="button button-secondary action-danger" onClick={() => deleteSession(session.id)}>Delete</button>
+                )}
+
+
+                  
+                  {managedGroups.some(
+                    (group) => Number(group.id) === Number(session.groupId)
+                  ) && (
+                    <>
+                      <button
+                        type="button"
+                        className="button button-secondary"
+                        onClick={() => {
+                          loadSessionIntoForm(session);
+                          setShowSessionForm(true);
+                        }}
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        className="button button-secondary action-danger"
+                        onClick={() => deleteSession(session.id)}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+
                 </div>
               </article>
-            ))}
+))}
           </div>
         )}
       </div>

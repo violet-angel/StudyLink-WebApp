@@ -1210,20 +1210,36 @@ app.post('/api/ai/flag', requireAuth, async (req, res) => {
   return res.json({ ok: true });
 });
 
-app.get('/api/sessions', requireAuth, async (_req, res) => {
+
+app.get('/api/sessions', requireAuth, async (req, res) => {
   const result = await query(
     `SELECT
       s.*,
       g.name AS group_name,
       g.course_code AS course_code,
-      (SELECT COUNT(*) FROM session_enrollments se WHERE se.session_id = s.id) AS enrollment_count
+      (SELECT COUNT(*)
+       FROM session_enrollments se
+       WHERE se.session_id = s.id) AS enrollment_count,
+      EXISTS (
+        SELECT 1
+        FROM session_enrollments se
+        WHERE se.session_id = s.id
+          AND se.user_id = $1
+      ) AS is_enrolled
      FROM sessions s
      JOIN study_groups g ON g.id = s.group_id
      ORDER BY s.starts_at ASC NULLS LAST, s.id ASC;`,
+    [req.user.id]
   );
 
-  return res.json({ sessions: result.rows.map(toSessionSummary) });
+  return res.json({
+    sessions: result.rows.map(row => ({
+      ...toSessionSummary(row),
+      isEnrolled: Boolean(row.is_enrolled)
+    }))
+  });
 });
+
 
 app.get('/api/sessions/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
@@ -1271,6 +1287,37 @@ app.post('/api/sessions', requireAuth, async (req, res) => {
   if (!groupId || !title || !startsAt) {
     return res.status(400).json({ message: 'Group, title, and start time are required.' });
   }
+
+const selectedGroupId = Number(groupId);
+
+if (!Number.isSafeInteger(selectedGroupId) || selectedGroupId <= 0) {
+  return res.status(400).json({
+    message: 'Invalid study group.'
+  });
+}
+
+const groupResult = await query(
+  `SELECT owner_user_id
+   FROM study_groups
+   WHERE id = $1
+   LIMIT 1`,
+  [selectedGroupId]
+);
+
+if (groupResult.rows.length === 0) {
+  return res.status(404).json({
+    message: 'Study group not found.'
+  });
+}
+
+const groupOwnerId = groupResult.rows[0].owner_user_id;
+
+if (!canManageEntity(req, groupOwnerId)) {
+  return res.status(403).json({
+    message: 'Only the group administrator can create sessions for this group.'
+  });
+}
+
 
   const result = await query(
     `INSERT INTO sessions (
@@ -1326,6 +1373,40 @@ app.patch('/api/sessions/:id', requireAuth, async (req, res) => {
     attendanceRules,
   } = req.body;
 
+if (groupId !== undefined && groupId !== null) {
+  const destinationGroupId = Number(groupId);
+
+  if (!Number.isSafeInteger(destinationGroupId) || destinationGroupId <= 0) {
+    return res.status(400).json({
+      message: 'Invalid destination group.'
+    });
+  }
+
+  const destination = await query(
+    `SELECT owner_user_id
+     FROM study_groups
+     WHERE id = $1
+     LIMIT 1`,
+    [destinationGroupId]
+  );
+
+  if (destination.rows.length === 0) {
+    return res.status(404).json({
+      message: 'Destination group not found.'
+    });
+  }
+
+  if (
+    destinationGroupId !== Number(existing.group_id) &&
+    !canManageEntity(req, destination.rows[0].owner_user_id)
+  ) {
+    return res.status(403).json({
+      message: 'You cannot move this session to a group you do not manage.'
+    });
+  }
+}
+
+
   await query(
     `UPDATE sessions
      SET
@@ -1373,23 +1454,81 @@ app.delete('/api/sessions/:id', requireAuth, async (req, res) => {
   return res.status(204).send();
 });
 
+
 app.post('/api/sessions/:id/enroll', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const session = await loadSessionById(id);
-  if (!session) {
-    return res.status(404).json({ message: 'Session not found' });
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: 'Invalid session ID.'
+      });
+    }
+
+    const session = await loadSessionById(id);
+
+    if (!session) {
+      return res.status(404).json({
+        message: 'Session not found.'
+      });
+    }
+
+    // Verify the student belongs to the associated study group.
+    const membership = await query(
+      `SELECT
+         EXISTS (
+           SELECT 1
+           FROM group_enrollments
+           WHERE group_id = $1 AND user_id = $2
+         ) AS is_member,
+         EXISTS (
+           SELECT 1
+           FROM study_groups
+           WHERE id = $1 AND owner_user_id = $2
+         ) AS is_owner`,
+      [session.group_id, req.user.id]
+    );
+
+    const isMember = membership.rows[0]?.is_member === true;
+    const isOwner = membership.rows[0]?.is_owner === true;
+
+    if (!isMember && !isOwner) {
+      return res.status(403).json({
+        message: 'You must join the study group before enrolling in its sessions.'
+      });
+    }
+
+    if (session.status === 'Completed' || session.status === 'Full') {
+      return res.status(400).json({
+        message: 'This session is not accepting enrolments.'
+      });
+    }
+
+    await query(
+      `INSERT INTO session_enrollments (session_id, user_id)
+       VALUES ($1, $2)
+       ON CONFLICT (session_id, user_id) DO NOTHING`,
+      [id, req.user.id]
+    );
+
+    const updated = await loadSessionById(id);
+
+    return res.json({
+      session: {
+        ...toSessionSummary(updated),
+        isEnrolled: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Session enrolment failed:', error);
+
+    return res.status(500).json({
+      message: 'Unable to enrol in session.'
+    });
   }
-
-  await query(
-    `INSERT INTO session_enrollments (session_id, user_id)
-     VALUES ($1, $2)
-     ON CONFLICT (session_id, user_id) DO NOTHING;`,
-    [id, req.user.id],
-  );
-
-  const updated = await loadSessionById(id);
-  return res.json({ session: toSessionSummary(updated) });
 });
+
 
 app.get('/api/resources', requireAuth, async (_req, res) => {
   const result = await query(
