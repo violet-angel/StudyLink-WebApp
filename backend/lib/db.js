@@ -258,10 +258,17 @@ if (!useLocalStore) {
     ? { rejectUnauthorized: false }
     : undefined;
 
+  
   pool = new Pool({
     connectionString: databaseUrl,
     ssl,
+    max: 3,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 10000,
+    query_timeout: 10000,
+    statement_timeout: 10000,
   });
+
 }
 
 function normalizeSql(text) {
