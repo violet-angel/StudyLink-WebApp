@@ -254,7 +254,12 @@ const loadGroups = async () => {
     setJoiningGroupIds((current) => Array.from(new Set([...current, group.id])));
 
     try {
-      const response = await apiFetch(`/api/groups/${group.id}/enroll`, { method: 'POST' });
+      const response = await apiFetch(
+  group.requiresApproval
+    ? `/api/groups/${group.id}/request-join`
+    : `/api/groups/${group.id}/enroll`,
+  { method: 'POST' }
+);
       const data = await response.json();
       if (!response.ok) {
         const message = response.status === 403
@@ -262,7 +267,13 @@ const loadGroups = async () => {
           : data?.message || 'Join failed. Please try again later.';
         throw new Error(message);
       }
-
+      if (group.requiresApproval) {
+        setPendingJoinGroup(null);
+        setAcceptedRequirements(false);
+        setJoinError('');
+        alert('Your request has been submitted. Wait for the group owner to approve it.');
+        return;
+      }
       setJoinedGroupIds((current) => Array.from(new Set([...current, group.id])));
       await loadGroups();
       addNotification({
@@ -558,9 +569,12 @@ const loadGroups = async () => {
                       ? 'Joined'
                       : joiningGroupIds.includes(group.id)
                         ? 'Joining…'
+                        : group.requiresApproval
+                        ? 'Request to Join'
                         : group.joinRequirements && group.joinRequirements.length > 0
                           ? 'Review requirements'
-                          : 'Join group'}
+                          : 'Join group'
+                          }
                   </button>
                 </div>
               </article>
