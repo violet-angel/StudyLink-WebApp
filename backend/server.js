@@ -1538,6 +1538,131 @@ app.post('/api/sessions/:id/enroll', requireAuth, async (req, res) => {
 });
 
 
+app.get('/api/sessions/:id/attendance', requireAuth, async (req, res) => {
+  try {
+    const sessionId = Number(req.params.id);
+
+    if (!Number.isSafeInteger(sessionId) || sessionId <= 0) {
+      return res.status(400).json({ message: 'Invalid session ID.' });
+    }
+
+    const session = await loadSessionById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found.' });
+    }
+
+    const groupResult = await query(
+      'SELECT owner_user_id FROM study_groups WHERE id = $1',
+      [session.group_id]
+    );
+
+    const groupOwnerId = groupResult.rows[0]?.owner_user_id;
+
+    const canManage =
+      canManageEntity(req, groupOwnerId) ||
+      canManageEntity(req, session.created_by_user_id);
+
+    // Only session managers can retrieve the full attendance roster.
+    if (!canManage) {
+      return res.status(403).json({ message: 'Permission denied.' });
+    }
+
+    const result = await query(
+      `SELECT
+         u.id AS "userId",
+         u.full_name AS "studentName",
+         u.email,
+         COALESCE(a.status, 'unmarked') AS status
+       FROM session_enrollments se
+       JOIN users u ON u.id = se.user_id
+       LEFT JOIN session_attendance a
+         ON a.session_id = se.session_id AND a.user_id = se.user_id
+       WHERE se.session_id = $1
+       ORDER BY u.full_name ASC`,
+      [sessionId]
+    );
+
+    return res.json({
+      attendance: result.rows,
+      canManage: true
+    });
+  } catch (error) {
+    console.error('Failed to load session attendance:', error);
+    return res.status(500).json({ message: 'Unable to load attendance.' });
+  }
+});
+
+app.patch('/api/sessions/:id/attendance/:userId', requireAuth, async (req, res) => {
+  try {
+    const sessionId = Number(req.params.id);
+    const userId = Number(req.params.userId);
+    const { status } = req.body || {};
+
+    if (
+      !Number.isSafeInteger(sessionId) || sessionId <= 0 ||
+      !Number.isSafeInteger(userId) || userId <= 0
+    ) {
+      return res.status(400).json({ message: 'Invalid session or student ID.' });
+    }
+
+    if (!['present', 'absent', 'late'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid attendance status.' });
+    }
+
+    const session = await loadSessionById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found.' });
+    }
+
+    const groupResult = await query(
+      'SELECT owner_user_id FROM study_groups WHERE id = $1',
+      [session.group_id]
+    );
+
+    const groupOwnerId = groupResult.rows[0]?.owner_user_id;
+
+    if (
+      !canManageEntity(req, groupOwnerId) &&
+      !canManageEntity(req, session.created_by_user_id)
+    ) {
+      return res.status(403).json({ message: 'Permission denied.' });
+    }
+
+    const enrolled = await query(
+      `SELECT 1 FROM session_enrollments
+       WHERE session_id = $1 AND user_id = $2`,
+      [sessionId, userId]
+    );
+
+    if (!enrolled.rows.length) {
+      return res.status(400).json({
+        message: 'Student is not enrolled in this session.'
+      });
+    }
+
+    await query(
+      `INSERT INTO session_attendance
+         (session_id, user_id, status, marked_by, marked_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (session_id, user_id)
+       DO UPDATE SET
+         status = EXCLUDED.status,
+         marked_by = EXCLUDED.marked_by,
+         marked_at = NOW()`,
+      [sessionId, userId, status, req.user.id]
+    );
+
+    return res.json({
+      message: 'Attendance saved.',
+      userId,
+      status
+    });
+  } catch (error) {
+    console.error('Failed to update session attendance:', error);
+    return res.status(500).json({ message: 'Unable to save attendance.' });
+  }
+});
+
 app.get('/api/resources', requireAuth, async (_req, res) => {
   const result = await query(
     `SELECT

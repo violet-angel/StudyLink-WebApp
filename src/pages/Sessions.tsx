@@ -25,6 +25,15 @@ interface Session {
 
 function Sessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [attendanceSessionId, setAttendanceSessionId] = useState<number | null>(null);
+
+const [attendanceRows, setAttendanceRows] = useState<any[]>([]);
+
+const [attendanceLoading, setAttendanceLoading] = useState(false);
+
+const [attendanceError, setAttendanceError] = useState('');
+
+const [savingAttendanceUserId, setSavingAttendanceUserId] = useState<number | null>(null);
   const [groups, setGroups] = useState<any[]>([]);
   const managedGroups = groups.filter(
   (group) => group.isOwner === true
@@ -155,6 +164,83 @@ function Sessions() {
     }
   };
 
+
+const openAttendance = async (sessionId: number) => {
+  if (attendanceSessionId === sessionId) {
+    setAttendanceSessionId(null);
+    return;
+  }
+
+  setAttendanceSessionId(sessionId);
+  setAttendanceLoading(true);
+  setAttendanceError('');
+  setAttendanceRows([]);
+
+  try {
+    const response = await apiFetch(
+      `/api/sessions/${sessionId}/attendance`
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to load attendance.');
+    }
+
+    setAttendanceRows(data.attendance || []);
+  } catch (error) {
+    setAttendanceError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to load attendance.'
+    );
+  } finally {
+    setAttendanceLoading(false);
+  }
+};
+
+const markAttendance = async (
+  sessionId: number,
+  userId: number,
+  status: 'present' | 'absent' | 'late'
+) => {
+  setSavingAttendanceUserId(userId);
+  setAttendanceError('');
+
+  try {
+    const response = await apiFetch(
+      `/api/sessions/${sessionId}/attendance/${userId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to save attendance.');
+    }
+
+    setAttendanceRows((current) =>
+      current.map((student) =>
+        Number(student.userId) === userId
+          ? { ...student, status }
+          : student
+      )
+    );
+  } catch (error) {
+    setAttendanceError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to save attendance.'
+    );
+  } finally {
+    setSavingAttendanceUserId(null);
+  }
+};
+
+  
   const handleEnroll = async (id: number) => {
     setEnrollingSessionIds((current) => Array.from(new Set([...current, id])));
 
@@ -396,6 +482,15 @@ function Sessions() {
                     (group) => Number(group.id) === Number(session.groupId)
                   ) && (
                     <>
+                    <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => openAttendance(session.id)}
+                  >
+                    {attendanceSessionId === session.id
+                      ? 'Close Attendance'
+                      : 'Manage Attendance'}
+                  </button>
                       <button
                         type="button"
                         className="button button-secondary"
@@ -422,6 +517,136 @@ function Sessions() {
 ))}
           </div>
         )}
+
+{attendanceSessionId !== null && (
+  <section className="detail-panel">
+    <div className="section-header">
+      <h2>Session Attendance Register</h2>
+
+      <button
+        type="button"
+        className="button button-secondary"
+        onClick={() => setAttendanceSessionId(null)}
+      >
+        Close
+      </button>
+    </div>
+
+    {attendanceLoading ? (
+      <p>Loading enrolled students...</p>
+    ) : (
+      <>
+        {attendanceError && (
+          <p className="form-error" role="alert">
+            {attendanceError}
+          </p>
+        )}
+
+        {attendanceRows.length === 0 ? (
+          <p>No enrolled students found.</p>
+        ) : (
+          <div className="member-list">
+            {attendanceRows.map((student) => (
+              <article
+                key={student.userId}
+                className="member-list-card"
+              >
+                <div>
+                  <strong>{student.studentName}</strong>
+                  <p>{student.email}</p>
+                </div>
+
+                <div>
+                  <select
+                    className="filter-select"
+                    value={student.status || 'unmarked'}
+                    disabled={savingAttendanceUserId !== null}
+                    onChange={(event) =>
+                      markAttendance(
+                        attendanceSessionId,
+                        Number(student.userId),
+                        event.target.value as
+                          'present' | 'absent' | 'late'
+                      )
+                    }
+                  >
+                    <option value="unmarked" disabled>
+                      Not Marked
+                    </option>
+                    <option value="present">Present</option>
+                    <option value="absent">Absent</option>
+                    <option value="late">Late</option>
+                  </select>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </>
+    )}
+  </section>
+)}
+
+
+{attendanceSessionId !== null && (
+  <section className="detail-panel">
+    <div className="section-header">
+      <h2>Session Attendance Register</h2>
+      <button
+        type="button"
+        className="button button-secondary"
+        onClick={() => setAttendanceSessionId(null)}
+      >
+        Close
+      </button>
+    </div>
+
+    {attendanceLoading ? (
+      <p>Loading enrolled students...</p>
+    ) : (
+      <>
+        {attendanceError && (
+          <p className="form-error" role="alert">
+            {attendanceError}
+          </p>
+        )}
+
+        {attendanceRows.length === 0 ? (
+          <p>No enrolled students found.</p>
+        ) : (
+          <div className="member-list">
+            {attendanceRows.map((student) => (
+              <article key={student.userId} className="member-list-card">
+                <div>
+                  <strong>{student.studentName}</strong>
+                  <p>{student.email}</p>
+                </div>
+                <select
+                  className="filter-select"
+                  value={student.status || 'unmarked'}
+                  disabled={savingAttendanceUserId !== null}
+                  onChange={(event) =>
+                    markAttendance(
+                      attendanceSessionId,
+                      Number(student.userId),
+                      event.target.value as 'present' | 'absent' | 'late'
+                    )
+                  }
+                >
+                  <option value="unmarked" disabled>Not Marked</option>
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                  <option value="late">Late</option>
+                </select>
+              </article>
+            ))}
+          </div>
+        )}
+      </>
+    )}
+  </section>
+)}
+
       </div>
     </section>
   );
