@@ -604,6 +604,7 @@ app.get('/api/groups/:id', requireAuth, async (req, res) => {
 });
 
 app.post('/api/groups', requireAuth, async (req, res) => {
+  try {
   console.log('GROUP CREATE: Request received');
   const {
     name,
@@ -641,7 +642,7 @@ app.post('/api/groups', requireAuth, async (req, res) => {
       new_member_steps,
       communication_channel,
       schedule_notes,
-      owner_user_id
+      owner_user_id,
       requires_approval
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13, $14, $15)
     RETURNING *;`,
@@ -665,6 +666,7 @@ app.post('/api/groups', requireAuth, async (req, res) => {
   );
   console.log('GROUP CREATE: INSERT successful, loading saved group');
   
+
 return res.status(201).json({
   group: toGroupSummary({
     ...result.rows[0],
@@ -673,7 +675,16 @@ return res.status(201).json({
   }),
 });
 
+} catch (error) {
+  console.error('CREATE GROUP FAILED:', error);
+
+  return res.status(500).json({
+    message: 'Unable to create study group.',
+    errorCode: error.code || 'DATABASE_ERROR'
+  });
+}
 });
+
 
 app.patch('/api/groups/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);
@@ -721,7 +732,7 @@ app.patch('/api/groups/:id', requireAuth, async (req, res) => {
        schedule_notes = COALESCE($13, schedule_notes),
        requires_approval = COALESCE($14, requires_approval),
        updated_at = NOW()
-     WHERE id = $14;`,
+     WHERE id = $15;`,
     [
       name ? String(name).trim() : null,
       description ? String(description).trim() : null,
