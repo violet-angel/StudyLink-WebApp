@@ -1355,22 +1355,38 @@ export async function updateUserProfile(userId, updates) {
   return loadUserProfile(userId);
 }
 
+
 export async function query(text, params = []) {
-  if (useLocalStore || !pool) {
+  if (!pool || useLocalStore) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('PostgreSQL connection is unavailable.');
+    }
+
     return localQuery(text, params);
   }
 
   try {
     return await pool.query(text, params);
   } catch (error) {
-    console.warn('Postgres query failed, falling back to local store:', error?.message || error);
+    console.error('PostgreSQL query failed:', error);
+
+    // Never switch to local JSON storage in production.
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
+    }
+
     useLocalStore = true;
     return localQuery(text, params);
   }
 }
 
+
 export async function healthcheck() {
-  return query('SELECT 1 AS ok');
+  if (!pool) {
+    throw new Error('PostgreSQL pool is not configured.');
+  }
+
+  return pool.query('SELECT 1 AS ok');
 }
 
 export function isLocalStore() {
