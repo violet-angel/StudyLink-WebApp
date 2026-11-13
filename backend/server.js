@@ -1018,6 +1018,30 @@ app.patch('/api/groups/:id/requests/:requestId',
         message: 'Request not pending or database unavailable.'
       });
     }
+    
+try {
+  await query(
+    `INSERT INTO student_notifications
+       (user_id, kind, title, body, href)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [
+      outcome.user_id,
+      'group_membership',
+      status === 'approved'
+        ? 'Group Membership Approved'
+        : 'Group Membership Rejected',
+      status === 'approved'
+        ? 'Your request to join a study group has been approved.'
+        : 'Your request to join a study group has been declined.',
+      `/groups/${groupId}`
+    ]
+  );
+} catch (notificationError) {
+  console.error(
+    'Membership request processed, but notification failed:',
+    notificationError
+  );
+}
 
     return res.json({ message: `Request ${status}.` });
   }
@@ -1360,6 +1384,51 @@ await query(
    ON CONFLICT (session_id, user_id) DO NOTHING`,
   [result.rows[0].id, req.user.id]
 );
+  
+await query(
+  `INSERT INTO student_notifications
+     (user_id, kind, title, body, href)
+   SELECT
+     ge.user_id,
+     'new_session',
+     'New Study Session Scheduled',
+     $3,
+     '/sessions'
+   FROM group_enrollments ge
+   WHERE ge.group_id = $1
+     AND ge.user_id <> $2`,
+  [
+    Number(groupId),
+    req.user.id,
+    `A new study session "${String(title).trim()}" has been scheduled.`
+  ]
+);
+  
+try {
+  await query(
+    `INSERT INTO student_notifications
+       (user_id, kind, title, body, href)
+     SELECT
+       ge.user_id,
+       'new_session',
+       'New Study Session Scheduled',
+       $3,
+       '/sessions'
+     FROM group_enrollments ge
+     WHERE ge.group_id = $1
+       AND ge.user_id <> $2`,
+    [
+      Number(groupId),
+      req.user.id,
+      `A new study session "${String(title).trim()}" has been scheduled.`
+    ]
+  );
+} catch (notificationError) {
+  console.error(
+    'Session created, but notification delivery failed:',
+    notificationError
+  );
+}
 
   const created = await loadSessionById(result.rows[0].id);
   return res.status(201).json({ session: toSessionSummary(created) });
@@ -1687,6 +1756,29 @@ app.patch('/api/sessions/:id/attendance/:userId', requireAuth, async (req, res) 
          marked_at = NOW()`,
       [sessionId, userId, status, req.user.id]
     );
+    
+try {
+  const attendanceLabel =
+    status.charAt(0).toUpperCase() + status.slice(1);
+
+  await query(
+    `INSERT INTO student_notifications
+       (user_id, kind, title, body, href)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [
+      userId,
+      'session_attendance',
+      'Study Session Attendance Updated',
+      `Your attendance for "${session.title}" has been marked as ${attendanceLabel}.`,
+      '/sessions'
+    ]
+  );
+} catch (notificationError) {
+  console.error(
+    'Attendance saved, but notification failed:',
+    notificationError
+  );
+}
 
     return res.json({
       message: 'Attendance saved.',
@@ -1759,11 +1851,41 @@ app.delete('/api/my/resources/:id', requireAuth, async (req, res) => {
   return res.status(204).send();
 });
 
+
 app.post('/api/resources', requireAuth, async (req, res) => {
-  const { title, resourceType, url, description, usageNotes, audience } = req.body;
+  const {
+    title,
+    resourceType,
+    url,
+    description,
+    usageNotes,
+    audience,
+    courseId
+  } = req.body;
 
   if (!title || !resourceType || !url) {
-    return res.status(400).json({ message: 'Title, type, and URL are required.' });
+    return res.status(400).json({
+      message: 'Title, type, and URL are required.'
+    });
+  }
+
+  const parsedCourseId = Number(courseId);
+
+  if (!Number.isSafeInteger(parsedCourseId) || parsedCourseId <= 0) {
+    return res.status(400).json({
+      message: 'Please select a valid course.'
+    });
+  }
+
+  const courseResult = await query(
+    'SELECT id FROM courses WHERE id = $1',
+    [parsedCourseId]
+  );
+
+  if (!courseResult.rows.length) {
+    return res.status(404).json({
+      message: 'Selected course not found.'
+    });
   }
 
   const result = await query(
@@ -1774,9 +1896,10 @@ app.post('/api/resources', requireAuth, async (req, res) => {
       description,
       usage_notes,
       audience,
-      created_by_user_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id;`,
+      created_by_user_id,
+      course_id
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    RETURNING id`,
     [
       String(title).trim(),
       String(resourceType).trim(),
@@ -1785,12 +1908,45 @@ app.post('/api/resources', requireAuth, async (req, res) => {
       usageNotes ? String(usageNotes).trim() : null,
       audience ? String(audience).trim() : null,
       req.user.id,
-    ],
+      parsedCourseId
+    ]
   );
 
-  const created = await loadResourceById(result.rows[0].id);
-  return res.status(201).json({ resource: toResourceSummary(created) });
+  const resourceId = result.rows[0].id;
+
+  try {
+    await query(
+      `INSERT INTO student_notifications
+         (user_id, kind, title, body, href)
+       SELECT
+         ce.user_id,
+         'new_resource',
+         'New Study Resource Available',
+         $2,
+         '/resources'
+       FROM course_enrollments ce
+       WHERE ce.course_id = $1
+         AND ce.user_id <> $3`,
+      [
+        parsedCourseId,
+        `A new study resource "${String(title).trim()}" is available.`,
+        req.user.id
+      ]
+    );
+  } catch (notificationError) {
+    console.error(
+      'Resource created, but notification failed:',
+      notificationError
+    );
+  }
+
+  const created = await loadResourceById(resourceId);
+
+  return res.status(201).json({
+    resource: toResourceSummary(created)
+  });
 });
+
 
 app.patch('/api/resources/:id', requireAuth, async (req, res) => {
   const id = Number(req.params.id);

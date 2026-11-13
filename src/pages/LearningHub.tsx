@@ -87,6 +87,7 @@ function LearningHub() {
   const [selectedType, setSelectedType] = useState('All types');
   const [hiddenResourceIds, setHiddenResourceIds] = useState<string[]>(() => loadHiddenResources());
   const [newResourceTitle, setNewResourceTitle] = useState('');
+  const [newResourceCourseId, setNewResourceCourseId] = useState('');
   const [newResourceUrl, setNewResourceUrl] = useState('');
   const [newResourceFile, setNewResourceFile] = useState<File | null>(null);
   const [resourceUploading, setResourceUploading] = useState(false);
@@ -263,6 +264,10 @@ function LearningHub() {
   };
 
   const handleAddLibraryResource = async () => {
+    if (!newResourceCourseId) {
+      setResourceUploadStatus('Please select a course.');
+      return;
+    }
     if (!newResourceTitle) {
       setResourceUploadStatus('A title is required.');
       return;
@@ -308,14 +313,21 @@ function LearningHub() {
     try {
       const resp = await apiFetch('/api/resources', {
         method: 'POST',
+        
         body: JSON.stringify({
           title: newResourceTitle,
-          resourceType: newResourceUrl?.toLowerCase().includes('pdf') || newResourceFile?.name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'Resource',
+          resourceType:
+            newResourceUrl?.toLowerCase().includes('pdf') ||
+            newResourceFile?.name.toLowerCase().endsWith('.pdf')
+              ? 'PDF'
+              : 'Resource',
           url,
           description: '',
           usageNotes: 'Uploaded by user.',
-          audience: 'All students',
+          audience: 'Enrolled course students',
+          courseId: Number(newResourceCourseId),
         }),
+
       });
       if (!resp.ok) {
         const errorJson = await resp.json().catch(() => null);
@@ -348,6 +360,7 @@ function LearningHub() {
       setNewResourceTitle('');
       setNewResourceUrl('');
       setNewResourceFile(null);
+      setNewResourceCourseId('');
       setResourceUploadStatus('Resource added successfully.');
     } catch (error) {
       setResourceUploadStatus('Failed to save resource.');
@@ -432,6 +445,21 @@ function LearningHub() {
         <section className="workspace-toolbar library-toolbar">
           <div className="resource-upload-panel">
             <h3>Add or upload a resource</h3>
+
+            <select
+              value={newResourceCourseId}
+              onChange={(event) => setNewResourceCourseId(event.target.value)}
+              className="filter-select"
+              style={{ marginBottom: 8, width: '100%' }}
+            >
+              <option value="">Select a course</option>
+              {enrolledCourses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.code} - {course.title}
+                </option>
+              ))}
+            </select>
+
             <input
               placeholder="Title"
               value={newResourceTitle}
