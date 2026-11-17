@@ -264,8 +264,13 @@ function LearningHub() {
   };
 
   const handleAddLibraryResource = async () => {
-    if (!newResourceCourseId) {
-      setResourceUploadStatus('Please select a course.');
+    const selectedCourseId = Number(newResourceCourseId);
+
+    if (
+      !Number.isSafeInteger(selectedCourseId) ||
+      selectedCourseId <= 0
+    ) {
+      setResourceUploadStatus('Please select a valid course.');
       return;
     }
     if (!newResourceTitle) {
@@ -296,11 +301,14 @@ function LearningHub() {
         const json = await resp.json();
         url = json.url;
         setResourceUploadStatus('File uploaded successfully.');
-      } catch (error) {
-        setResourceUploadStatus('Upload failed. Please try again.');
-        setResourceUploading(false);
-        return;
-      } finally {
+        } catch (error) {
+          console.error('FILE UPLOAD ERROR:', error);
+          setResourceUploadStatus(
+            error instanceof Error ? error.message : 'File upload failed.'
+          );
+          setResourceUploading(false);
+          return;
+        } finally {
         setResourceUploading(false);
       }
     }
@@ -325,7 +333,7 @@ function LearningHub() {
           description: '',
           usageNotes: 'Uploaded by user.',
           audience: 'Enrolled course students',
-          courseId: Number(newResourceCourseId),
+          courseId: selectedCourseId,
         }),
 
       });
@@ -362,9 +370,17 @@ function LearningHub() {
       setNewResourceFile(null);
       setNewResourceCourseId('');
       setResourceUploadStatus('Resource added successfully.');
-    } catch (error) {
-      setResourceUploadStatus('Failed to save resource.');
-    }
+    
+      } catch (error) {
+        console.error('RESOURCE SAVE ERROR:', error);
+
+        setResourceUploadStatus(
+          error instanceof Error
+            ? error.message
+            : 'Resource save failed.'
+        );
+      }
+
   };
 
   const handleHide = async (resource: ResourceItem) => {
@@ -446,19 +462,35 @@ function LearningHub() {
           <div className="resource-upload-panel">
             <h3>Add or upload a resource</h3>
 
-            <select
-              value={newResourceCourseId}
-              onChange={(event) => setNewResourceCourseId(event.target.value)}
-              className="filter-select"
-              style={{ marginBottom: 8, width: '100%' }}
-            >
-              <option value="">Select a course</option>
-              {enrolledCourses.map((course) => (
-                <option key={course.id} value={course.id}>
+            
+          
+          <select
+            value={newResourceCourseId}
+            onChange={(event) => setNewResourceCourseId(event.target.value)}
+            className="filter-select"
+            style={{ marginBottom: 8, width: '100%' }}
+          >
+            <option value="">Select a course</option>
+
+            {catalogCourses.map((course) => {
+              const validId =
+                Number.isSafeInteger(Number(course.id)) &&
+                Number(course.id) > 0;
+
+              return (
+                <option
+                  key={course.code}
+                  value={validId ? String(course.id) : ''}
+                  disabled={!validId}
+                >
                   {course.code} - {course.title}
+                  {!validId ? ' (Not registered in database)' : ''}
                 </option>
-              ))}
-            </select>
+              );
+            })}
+          </select>
+
+
 
             <input
               placeholder="Title"

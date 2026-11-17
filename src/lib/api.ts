@@ -1,5 +1,5 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').trim();
-const FALLBACK_BACKEND = 'https://studylinkbackend-4a7r.onrender.com';
+const FALLBACK_BACKEND = 'https://studylink-webapp-backend.vercel.app';
 
 export const getStoredToken = () => {
   if (typeof localStorage === 'undefined') return '';
