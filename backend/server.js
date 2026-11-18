@@ -16,6 +16,7 @@ import {
   query,
   updateUserProfile,
 } from './lib/db.js';
+import { put, get } from '@vercel/blob';
 
 const app = express();
 
@@ -2189,33 +2190,146 @@ if (hasClientBuild) {
   });
 }
 
-// Serve uploaded files
-const uploadsPath = path.join(process.cwd(), 'public', 'uploads');
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
-app.use('/uploads', express.static(uploadsPath));
 
-// Simple base64 upload endpoint (authenticated)
+// Upload resources to private Vercel Blob storage
 app.post('/api/uploads', requireAuth, async (req, res) => {
   const { filename, data } = req.body || {};
+
   if (!filename || !data) {
-    return res.status(400).json({ message: 'Filename and base64 data are required.' });
+    return res.status(400).json({
+      message: 'Filename and file data are required.'
+    });
   }
 
   try {
-    const buffer = Buffer.from(String(data), 'base64');
-    const safeName = `${Date.now()}_${path.basename(String(filename)).replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
-    const outPath = path.join(uploadsPath, safeName);
-    fs.writeFileSync(outPath, buffer);
-    const url = `/uploads/${safeName}`;
-    return res.json({ url });
+    const extension = path.extname(filename).toLowerCase();
+
+    const allowedTypes = {
+      '.pdf': 'application/pdf',
+      '.doc': 'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.ppt': 'application/vnd.ms-powerpoint',
+      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.txt': 'text/plain',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    };
+
+    if (!allowedTypes[extension]) {
+      return res.status(400).json({
+        message: 'Unsupported file type.'
+      });
+    }
+
+    const buffer = Buffer.from(
+      String(data).replace(/^data:[^;]+;base64,/, ''),
+      'base64'
+    );
+
+    if (!buffer.length || buffer.length > 3 * 1024 * 1024) {
+      return res.status(400).json({
+        message: 'Maximum file size is 3 MB.'
+      });
+    }
+
+    const safeName = path.basename(filename)
+      .replace(/[^a-zA-Z0-9_.-]/g, '_');
+
+    const blob = await put(
+      `resources/${req.user.id}/${safeName}`,
+      buffer,
+      {
+        access: 'private',
+        addRandomSuffix: true,
+        contentType: allowedTypes[extension]
+      }
+    );
+
+    return res.json({
+      url: blob.url,
+      filename: safeName,
+      message: 'File uploaded successfully.'
+    });
+
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Upload failed', error);
-    return res.status(500).json({ message: 'Failed to store uploaded file.' });
+    console.error('FILE UPLOAD ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to upload file.'
+    });
   }
 });
+
+// Authenticated resource download
+app.get('/api/resources/:id/download', requireAuth, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT r.*
+       FROM resources r
+       WHERE r.id = $1
+       AND (
+         r.created_by_user_id = $2
+         OR $3 = 'admin'
+         OR EXISTS (
+           SELECT 1 FROM course_enrollments ce
+           WHERE ce.course_id = r.course_id
+           AND ce.user_id = $2
+         )
+       )`,
+      [Number(req.params.id), req.user.id, req.user.role]
+    );
+
+    const resource = result.rows[0];
+
+    if (!resource) {
+      return res.status(404).json({
+        message: 'Resource not found or access denied.'
+      });
+    }
+
+    const blobUrl = new URL(resource.url);
+
+    if (
+      blobUrl.protocol !== 'https:' ||
+      !blobUrl.hostname.endsWith('.private.blob.vercel-storage.com') ||
+      !blobUrl.pathname.startsWith('/resources/')
+    ) {
+      return res.status(400).json({
+        message: 'Invalid stored file.'
+      });
+    }
+
+    const blob = await get(
+      decodeURIComponent(blobUrl.pathname.slice(1)),
+      { access: 'private' }
+    );
+
+    if (!blob || blob.statusCode !== 200) {
+      return res.status(404).json({
+        message: 'File not found.'
+      });
+    }
+
+    res.setHeader('Content-Type', blob.blob.contentType);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'attachment');
+
+    const file = await new Response(blob.stream).arrayBuffer();
+
+    return res.send(Buffer.from(file));
+
+  } catch (error) {
+    console.error('DOWNLOAD ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to download resource.'
+    });
+  }
+});
+
 
 app.use((_req, res) => {
   res.status(404).json({ message: 'Route not found. Use /api/health or the frontend app.' });

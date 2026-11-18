@@ -249,21 +249,72 @@ function LearningHub() {
     });
   }, [baseResources, searchTerm, selectedSchool, selectedType, selectedView]);
 
-  const handleAccess = async (resource: ResourceItem) => {
-    const resourceUrl = resource.url || resource.fallbackUrl;
-    if (resourceUrl) {
-      window.open(resourceUrl, '_blank', 'noopener,noreferrer');
-      return;
+  
+const handleAccess = async (resource: ResourceItem) => {
+  const resourceUrl = resource.url || resource.fallbackUrl;
+
+  if (
+    resourceUrl &&
+    resourceUrl.includes('.private.blob.vercel-storage.com/')
+  ) {
+    try {
+      const response = await apiFetch(
+        `/api/resources/${resource.id}/download`
+      );
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.message || 'Download failed.');
+      }
+
+      const file = await response.blob();
+      const objectUrl = URL.createObjectURL(file);
+
+      const link = document.createElement('a');
+      link.href = objectUrl;
+
+      const filename = new URL(resourceUrl).pathname.split('/').pop();
+      link.download = filename || resource.title;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Unable to download resource.'
+      );
     }
 
-    const id = String(resource.id);
-    const queryParams = new URLSearchParams();
-    if (resource.courseCode) queryParams.set('courseCode', resource.courseCode);
+    return;
+  }
 
-    navigate(`/resources/${encodeURIComponent(id)}?${queryParams.toString()}`);
-  };
+  if (resourceUrl) {
+    window.open(resourceUrl, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  const queryParams = new URLSearchParams();
+
+  if (resource.courseCode) {
+    queryParams.set('courseCode', resource.courseCode);
+  }
+
+  navigate(
+    `/resources/${encodeURIComponent(String(resource.id))}?${queryParams.toString()}`
+  );
+};
+
 
   const handleAddLibraryResource = async () => {
+    if (newResourceFile && newResourceFile.size > 3 * 1024 * 1024) {
+      setResourceUploadStatus('Maximum file size is 3 MB.');
+      return;
+    }
     const selectedCourseId = Number(newResourceCourseId);
 
     if (
