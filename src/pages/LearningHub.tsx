@@ -486,10 +486,18 @@ const availableUploadGroups = studentGroups;
     const selectedCourseId = Number(newResourceCourseId);
 
     if (
-      !Number.isSafeInteger(selectedCourseId) ||
-      selectedCourseId <= 0
+      shareMode === 'course' &&
+      (
+        !Number.isSafeInteger(selectedCourseId) ||
+        selectedCourseId <= 0
+      )
     ) {
       setResourceUploadStatus('Please select a valid course.');
+      return;
+    }
+
+    if (shareMode === 'group' && !newResourceGroupId) {
+      setResourceUploadStatus('Please select a study group.');
       return;
     }
     if (!newResourceTitle) {
@@ -552,8 +560,10 @@ const availableUploadGroups = studentGroups;
           description: '',
           usageNotes: 'Uploaded by user.',
           audience: 'Enrolled course students',
-          courseId: selectedCourseId,
-          groupId: newResourceGroupId
+          courseId: shareMode === 'course'
+            ? selectedCourseId
+            : null,
+          groupId: shareMode === 'group'
             ? Number(newResourceGroupId)
             : null,
         }),
@@ -820,6 +830,7 @@ const availableUploadGroups = studentGroups;
           
           <select
             value={newResourceCourseId}
+            disabled={shareMode === 'group'}
             onChange={(event) => setNewResourceCourseId(event.target.value)}
             className="filter-select"
             style={{ marginBottom: 8, width: '100%' }}

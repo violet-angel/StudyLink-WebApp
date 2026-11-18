@@ -197,6 +197,7 @@ function toSessionSummary(row) {
       usageNotes: row.usage_notes || '',
       audience: row.audience || '',
       downloads: toNumber(row.download_count),
+      createdAt: row.created_at
     };
   }
 
@@ -1994,6 +1995,7 @@ app.delete('/api/my/resources/:id', requireAuth, async (req, res) => {
 
 
 
+
 app.post('/api/resources', requireAuth, async (req, res) => {
   try {
     const {
@@ -2002,38 +2004,46 @@ app.post('/api/resources', requireAuth, async (req, res) => {
       url,
       description,
       usageNotes,
-      audience,
       courseId,
       groupId
     } = req.body;
 
-    if (!title || !resourceType || !url) {
+    if (!title?.trim() || !resourceType || !url) {
       return res.status(400).json({
-        message: 'Title, type, and URL are required.'
+        message: 'Title, type and URL are required.'
       });
     }
 
-    const parsedCourseId = Number(courseId);
-    const parsedGroupId = groupId ? Number(groupId) : null;
+    let parsedCourseId = null;
+    let parsedGroupId = null;
 
-    if (!Number.isSafeInteger(parsedCourseId) || parsedCourseId <= 0) {
+    let resourceUrl;
+
+    try {
+      resourceUrl = new URL(url);
+
+      if (!['http:', 'https:'].includes(resourceUrl.protocol)) {
+        throw new Error('Invalid URL');
+      }
+
+      if (
+        resourceUrl.hostname.endsWith('.private.blob.vercel-storage.com') &&
+        !resourceUrl.pathname.startsWith(`/resources/${req.user.id}/`)
+      ) {
+        return res.status(403).json({
+          message: 'You cannot share another user’s private file.'
+        });
+      }
+    } catch {
       return res.status(400).json({
-        message: 'Please select a valid course.'
+        message: 'Invalid resource URL.'
       });
     }
 
-    const courseResult = await query(
-      'SELECT id, code FROM courses WHERE id = $1',
-      [parsedCourseId]
-    );
+    // GROUP RESOURCE
+    if (groupId != null && groupId !== '') {
+      parsedGroupId = Number(groupId);
 
-    if (!courseResult.rows.length) {
-      return res.status(404).json({
-        message: 'Selected course not found.'
-      });
-    }
-
-    if (parsedGroupId !== null) {
       if (!Number.isSafeInteger(parsedGroupId) || parsedGroupId <= 0) {
         return res.status(400).json({
           message: 'Invalid study group.'
@@ -2041,7 +2051,7 @@ app.post('/api/resources', requireAuth, async (req, res) => {
       }
 
       const groupResult = await query(
-        `SELECT sg.id, sg.course_code
+        `SELECT sg.id, sg.name, sg.course_code
          FROM study_groups sg
          WHERE sg.id = $1
          AND (
@@ -2059,20 +2069,50 @@ app.post('/api/resources', requireAuth, async (req, res) => {
 
       if (!groupResult.rows.length) {
         return res.status(403).json({
-          message: 'You cannot upload resources to this group.'
+          message: 'You are not authorised to share resources in this group.'
         });
       }
 
+      // A study group does not require a registered course.
+      parsedCourseId = null;
+
+    } else {
+      // COURSE RESOURCE
+      parsedCourseId = Number(courseId);
+
       if (
-        String(groupResult.rows[0].course_code || '').trim().toUpperCase() !==
-        String(courseResult.rows[0].code || '').trim().toUpperCase()
+        !Number.isSafeInteger(parsedCourseId) ||
+        parsedCourseId <= 0
       ) {
         return res.status(400).json({
-          message: 'The selected course does not match the study group.'
+          message: 'Please select a valid course.'
+        });
+      }
+
+      const courseResult = await query(
+        `SELECT c.id
+         FROM courses c
+         WHERE c.id = $1
+         AND (
+           $3 = 'admin'
+           OR EXISTS (
+             SELECT 1
+             FROM course_enrollments ce
+             WHERE ce.course_id = c.id
+             AND ce.user_id = $2
+           )
+         )`,
+        [parsedCourseId, req.user.id, req.user.role]
+      );
+
+      if (!courseResult.rows.length) {
+        return res.status(403).json({
+          message: 'You must be enrolled in this course to share resources.'
         });
       }
     }
 
+    // SAVE RESOURCE
     const result = await query(
       `INSERT INTO resources (
         title,
@@ -2084,17 +2124,18 @@ app.post('/api/resources', requireAuth, async (req, res) => {
         created_by_user_id,
         course_id,
         group_id
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       RETURNING id`,
       [
         String(title).trim(),
         String(resourceType).trim(),
         String(url).trim(),
-        description ? String(description).trim() : null,
-        usageNotes ? String(usageNotes).trim() : null,
+        description || null,
+        usageNotes || 'Shared study material.',
         parsedGroupId
           ? 'Study group members'
-          : audience || 'Enrolled course students',
+          : 'Enrolled course students',
         req.user.id,
         parsedCourseId,
         parsedGroupId
@@ -2103,58 +2144,71 @@ app.post('/api/resources', requireAuth, async (req, res) => {
 
     const resourceId = result.rows[0].id;
 
+    // SEND NOTIFICATIONS
     try {
       if (parsedGroupId) {
         await query(
-          `INSERT INTO student_notifications
-             (user_id, kind, title, body, href)
-           SELECT
-             members.user_id,
-             'new_resource',
-             'New Group Resource',
-             $2,
-             '/resources'
-           FROM (
-             SELECT user_id
-             FROM group_enrollments
-             WHERE group_id = $1
+          `INSERT INTO student_notifications (
+            user_id,
+            kind,
+            title,
+            body,
+            href
+          )
+          SELECT
+            members.user_id,
+            'new_resource',
+            'New Group Resource',
+            $2,
+            $3
+          FROM (
+            SELECT user_id
+            FROM group_enrollments
+            WHERE group_id = $1
 
-             UNION
+            UNION
 
-             SELECT owner_user_id AS user_id
-             FROM study_groups
-             WHERE id = $1
-           ) members
-           WHERE members.user_id <> $3`,
+            SELECT owner_user_id AS user_id
+            FROM study_groups
+            WHERE id = $1
+          ) members
+          WHERE members.user_id <> $4`,
           [
             parsedGroupId,
             `A new resource "${String(title).trim()}" has been shared in your study group.`,
+            `/groups/${parsedGroupId}`,
             req.user.id
           ]
         );
+
       } else {
         await query(
-          `INSERT INTO student_notifications
-             (user_id, kind, title, body, href)
-           SELECT
-             ce.user_id,
-             'new_resource',
-             'New Study Resource Available',
-             $2,
-             '/resources'
-           FROM course_enrollments ce
-           WHERE ce.course_id = $1
-           AND ce.user_id <> $3`,
+          `INSERT INTO student_notifications (
+            user_id,
+            kind,
+            title,
+            body,
+            href
+          )
+          SELECT DISTINCT
+            ce.user_id,
+            'new_resource',
+            'New Course Resource',
+            $2,
+            '/resources'
+          FROM course_enrollments ce
+          WHERE ce.course_id = $1
+          AND ce.user_id <> $3`,
           [
             parsedCourseId,
-            `A new study resource "${String(title).trim()}" is available.`,
+            `A new resource "${String(title).trim()}" has been shared in your course.`,
             req.user.id
           ]
         );
       }
     } catch (notificationError) {
       console.error(
-        'Resource notification failed:',
+        'RESOURCE NOTIFICATION ERROR:',
         notificationError
       );
     }
@@ -2162,17 +2216,21 @@ app.post('/api/resources', requireAuth, async (req, res) => {
     const created = await loadResourceById(resourceId);
 
     return res.status(201).json({
-      resource: toResourceSummary(created)
+      resource: {
+        ...toResourceSummary(created),
+        canDelete: true
+      }
     });
 
   } catch (error) {
     console.error('RESOURCE CREATION ERROR:', error);
 
     return res.status(500).json({
-      message: 'Unable to create resource.'
+      message: 'Unable to save resource.'
     });
   }
 });
+
 
 
 

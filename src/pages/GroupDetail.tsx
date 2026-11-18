@@ -231,6 +231,7 @@ useEffect(() => {
   };
 }, [resourcePreview]);
 
+
 const handleGroupResourceUpload = async () => {
   if (uploadingResource) return;
 
@@ -248,30 +249,10 @@ const handleGroupResourceUpload = async () => {
   setResourceStatus('Uploading resource...');
 
   try {
-    const coursesResponse = await apiFetch('/api/courses');
-
-    if (!coursesResponse.ok) {
-      throw new Error('Unable to load courses.');
-    }
-
-    const coursesData = await coursesResponse.json();
-
-    const course = (coursesData.courses || []).find(
-      (item: any) =>
-        String(item.code || '').trim().toUpperCase() ===
-        String(group.courseCode || '').trim().toUpperCase()
-    );
-
-    if (!course) {
-      throw new Error('The group course was not found.');
-    }
-
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-
       reader.onload = () => resolve(String(reader.result));
       reader.onerror = reject;
-
       reader.readAsDataURL(resourceFile);
     });
 
@@ -293,15 +274,15 @@ const handleGroupResourceUpload = async () => {
       method: 'POST',
       body: JSON.stringify({
         title: resourceTitle.trim(),
-        resourceType: resourceFile.name.toLowerCase().endsWith('.pdf')
-          ? 'PDF'
-          : 'Resource',
+        resourceType:
+          resourceFile.name.split('.').pop()?.toUpperCase() ||
+          'Resource',
         url: uploaded.url,
         description: 'Shared in ' + group.name,
         usageNotes: 'Shared study material.',
         audience: 'Study group members',
-        courseId: Number(course.id),
-        groupId: Number(id)
+        groupId: Number(id),
+        courseId: null
       })
     });
 
@@ -315,7 +296,6 @@ const handleGroupResourceUpload = async () => {
     setResourceFile(null);
     setResourceInputKey(current => current + 1);
     setShowResourceUpload(false);
-
     setResourceStatus('Resource uploaded successfully.');
 
     await loadGroupResources();
@@ -330,6 +310,7 @@ const handleGroupResourceUpload = async () => {
     setUploadingResource(false);
   }
 };
+
 
 const handleOpenGroupResource = async (resource: any) => {
   try {
