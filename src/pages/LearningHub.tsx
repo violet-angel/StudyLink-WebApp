@@ -91,6 +91,7 @@ function LearningHub() {
   const [newResourceTitle, setNewResourceTitle] = useState('');
   const [newResourceCourseId, setNewResourceCourseId] = useState('');
   const [newResourceGroupId, setNewResourceGroupId] = useState('');
+  const [shareMode, setShareMode] = useState('course');
   const [studentGroups, setStudentGroups] = useState<any[]>([]);
   const [newResourceUrl, setNewResourceUrl] = useState('');
   const [newResourceFile, setNewResourceFile] = useState<File | null>(null);
@@ -228,24 +229,7 @@ function LearningHub() {
     .catch(console.error);
 }, []);
 
-useEffect(() => {
-  setNewResourceGroupId('');
-}, [newResourceCourseId]);
-
-const availableUploadGroups = studentGroups.filter(group => {
-  const selectedCourse = catalogCourses.find(
-    course => String(course.id) === newResourceCourseId
-  );
-
-  const groupCourseCode = group.courseCode || group.course_code || '';
-
-  return (
-    selectedCourse &&
-    groupCourseCode &&
-    String(groupCourseCode).trim().toUpperCase() ===
-    String(selectedCourse.code).trim().toUpperCase()
-  );
-});
+const availableUploadGroups = studentGroups;
   const enrolledCourses = useMemo(
     () => catalogCourses.filter((course) => course.isEnrolled),
     [catalogCourses],
@@ -491,6 +475,10 @@ const availableUploadGroups = studentGroups.filter(group => {
   };
 
   const handleAddLibraryResource = async () => {
+    if (shareMode === 'group' && !newResourceGroupId) {
+      setResourceUploadStatus('Please select a study group.');
+      return;
+    }
     if (newResourceFile && newResourceFile.size > 3 * 1024 * 1024) {
       setResourceUploadStatus('Maximum file size is 3 MB.');
       return;
@@ -777,26 +765,57 @@ const availableUploadGroups = studentGroups.filter(group => {
             <h3>Add or upload a resource</h3>
 
 
+
 <select
-  value={newResourceGroupId}
-  onChange={(event) =>
-    setNewResourceGroupId(event.target.value)
-  }
+  value={shareMode}
+  onChange={(event) => {
+    setShareMode(event.target.value);
+    setNewResourceGroupId('');
+  }}
   className="filter-select"
-  //disabled={!newResourceCourseId}
   style={{ marginBottom: 8, width: '100%' }}
 >
-  <option value="">Share with course students</option>
-
-  {availableUploadGroups.map(group => (
-    <option
-      key={group.id}
-      value={String(group.id)}
-    >
-      Share with group: {group.name}
-    </option>
-  ))}
+  <option value="course">Share with course students</option>
+  <option value="group">Share with study group</option>
 </select>
+
+{shareMode === 'group' && (
+  <select
+    value={newResourceGroupId}
+    onChange={(event) => {
+      const groupId = event.target.value;
+
+      const group = studentGroups.find(
+        item => String(item.id) === groupId
+      );
+
+      const course = catalogCourses.find(
+        item =>
+          String(item.code).trim().toUpperCase() ===
+          String(
+            group?.courseCode || group?.course_code || ''
+          ).trim().toUpperCase()
+      );
+
+      setNewResourceCourseId(
+        course ? String(course.id) : ''
+      );
+
+      setNewResourceGroupId(groupId);
+    }}
+    className="filter-select"
+    style={{ marginBottom: 8, width: '100%' }}
+  >
+    <option value="">Select a study group</option>
+
+    {availableUploadGroups.map(group => (
+      <option key={group.id} value={String(group.id)}>
+        {group.name}
+      </option>
+    ))}
+  </select>
+)}
+
      
           
           <select

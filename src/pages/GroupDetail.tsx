@@ -17,6 +17,19 @@ function GroupDetail() {
   const [requestPending, setRequestPending] = useState(false);
   const [membershipRequests, setMembershipRequests] = useState<any[]>([]);
   const [canReviewRequests, setCanReviewRequests] = useState(false);
+  const [groupResources, setGroupResources] = useState<any[]>([]);
+  const [resourceTitle, setResourceTitle] = useState('');
+  const [resourceFile, setResourceFile] = useState<File | null>(null);
+  const [uploadingResource, setUploadingResource] = useState(false);
+  const [resourceStatus, setResourceStatus] = useState('');
+  const [showResourceUpload, setShowResourceUpload] = useState(false);
+  const [resourceInputKey, setResourceInputKey] = useState(0);
+
+  const [resourcePreview, setResourcePreview] = useState<{
+    url: string;
+    title: string;
+    type: string;
+  } | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -177,6 +190,266 @@ useEffect(() => {
     }
   };
 
+
+const loadGroupResources = async () => {
+  if (!id) return;
+
+  try {
+    const response = await apiFetch('/api/resources');
+
+    if (!response.ok) {
+      throw new Error('Unable to load group resources.');
+    }
+
+    const data = await response.json();
+
+    setGroupResources(
+      (data.resources || []).filter(
+        (resource: any) =>
+          String(resource.groupId) === String(id)
+      )
+    );
+  } catch (error) {
+    console.error(error);
+    setResourceStatus('Unable to load group resources.');
+  }
+};
+
+useEffect(() => {
+  setGroupResources([]);
+
+  if (group?.isMember || group?.isOwner || joinedGroup) {
+    loadGroupResources();
+  }
+}, [id, group, joinedGroup]);
+
+useEffect(() => {
+  return () => {
+    if (resourcePreview?.url) {
+      URL.revokeObjectURL(resourcePreview.url);
+    }
+  };
+}, [resourcePreview]);
+
+const handleGroupResourceUpload = async () => {
+  if (uploadingResource) return;
+
+  if (!resourceTitle.trim() || !resourceFile) {
+    setResourceStatus('Enter a title and select a file.');
+    return;
+  }
+
+  if (resourceFile.size > 3 * 1024 * 1024) {
+    setResourceStatus('Maximum file size is 3 MB.');
+    return;
+  }
+
+  setUploadingResource(true);
+  setResourceStatus('Uploading resource...');
+
+  try {
+    const coursesResponse = await apiFetch('/api/courses');
+
+    if (!coursesResponse.ok) {
+      throw new Error('Unable to load courses.');
+    }
+
+    const coursesData = await coursesResponse.json();
+
+    const course = (coursesData.courses || []).find(
+      (item: any) =>
+        String(item.code || '').trim().toUpperCase() ===
+        String(group.courseCode || '').trim().toUpperCase()
+    );
+
+    if (!course) {
+      throw new Error('The group course was not found.');
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+
+      reader.readAsDataURL(resourceFile);
+    });
+
+    const uploadResponse = await apiFetch('/api/uploads', {
+      method: 'POST',
+      body: JSON.stringify({
+        filename: resourceFile.name,
+        data: dataUrl.split(',')[1]
+      })
+    });
+
+    const uploaded = await uploadResponse.json();
+
+    if (!uploadResponse.ok) {
+      throw new Error(uploaded.message || 'File upload failed.');
+    }
+
+    const saveResponse = await apiFetch('/api/resources', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: resourceTitle.trim(),
+        resourceType: resourceFile.name.toLowerCase().endsWith('.pdf')
+          ? 'PDF'
+          : 'Resource',
+        url: uploaded.url,
+        description: 'Shared in ' + group.name,
+        usageNotes: 'Shared study material.',
+        audience: 'Study group members',
+        courseId: Number(course.id),
+        groupId: Number(id)
+      })
+    });
+
+    const saved = await saveResponse.json();
+
+    if (!saveResponse.ok) {
+      throw new Error(saved.message || 'Unable to save resource.');
+    }
+
+    setResourceTitle('');
+    setResourceFile(null);
+    setResourceInputKey(current => current + 1);
+    setShowResourceUpload(false);
+
+    setResourceStatus('Resource uploaded successfully.');
+
+    await loadGroupResources();
+
+  } catch (error) {
+    setResourceStatus(
+      error instanceof Error
+        ? error.message
+        : 'Resource upload failed.'
+    );
+  } finally {
+    setUploadingResource(false);
+  }
+};
+
+const handleOpenGroupResource = async (resource: any) => {
+  try {
+    if (!resource.url?.includes('.private.blob.vercel-storage.com/')) {
+      const url = new URL(resource.url);
+
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        throw new Error('Invalid resource URL.');
+      }
+
+      window.open(url.href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const response = await apiFetch(
+      `/api/resources/${resource.id}/download?mode=preview`
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to open resource.');
+    }
+
+    const file = await response.blob();
+
+    const supportedTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'text/plain'
+    ];
+
+    if (!supportedTypes.includes(file.type)) {
+      throw new Error('Preview unavailable. Please use Download.');
+    }
+
+    setResourcePreview({
+      url: URL.createObjectURL(file),
+      title: resource.title,
+      type: file.type
+    });
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to open resource.'
+    );
+  }
+};
+
+const handleDownloadGroupResource = async (resource: any) => {
+  try {
+    const response = await apiFetch(
+      `/api/resources/${resource.id}/download`
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to download resource.');
+    }
+
+    const file = await response.blob();
+    const url = URL.createObjectURL(file);
+
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download =
+      new URL(resource.url).pathname.split('/').pop() ||
+      resource.title;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Download failed.'
+    );
+  }
+};
+
+const handleDeleteGroupResource = async (resource: any) => {
+  if (!resource.canDelete) return;
+
+  if (!window.confirm(`Permanently delete "${resource.title}"?`)) {
+    return;
+  }
+
+  try {
+    const response = await apiFetch(
+      `/api/resources/${resource.id}`,
+      { method: 'DELETE' }
+    );
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || 'Unable to delete resource.');
+    }
+
+    setGroupResources(current =>
+      current.filter(
+        item => String(item.id) !== String(resource.id)
+      )
+    );
+
+    setResourceStatus('Resource deleted successfully.');
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to delete resource.'
+    );
+  }
+};
+
   const handleJoin = () => {
     if (!group) {
       return;
@@ -286,6 +559,15 @@ useEffect(() => {
                 </a>
               ) : null}
               {group.courseCode ? <Link to="/courses" className="button button-secondary">Open courses</Link> : null}
+              {(group.isMember || group.isOwner || joinedGroup) && (
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={() => setShowResourceUpload(true)}
+              >
+                Upload Resource
+              </button>
+            )}
             </div>
           </div>
         </section>
@@ -447,6 +729,222 @@ useEffect(() => {
           </div>
         </section>
       </div>
+
+      
+{(group.isMember || group.isOwner || joinedGroup) && (
+  <div
+    className="container"
+    style={{ marginTop: 20, marginBottom: 20 }}
+  >
+    <section className="detail-panel">
+      <div className="section-header">
+        <h2>Shared Resources</h2>
+
+        <span className="panel-pill">
+          {groupResources.length} resources
+        </span>
+
+        <button
+          type="button"
+          className="button button-primary"
+          onClick={() => setShowResourceUpload(true)}
+        >
+          Upload Resource
+        </button>
+      </div>
+
+      {resourceStatus && (
+        <p className="resource-upload-status">
+          {resourceStatus}
+        </p>
+      )}
+
+      {groupResources.length === 0 ? (
+        <p>No resources have been shared yet.</p>
+      ) : (
+        <div className="detail-card-grid">
+          {groupResources.map(resource => (
+            <article
+              key={resource.id}
+              className="detail-summary-card"
+            >
+              <span className="detail-chip">
+                {resource.type || 'Resource'}
+              </span>
+
+              <h3>{resource.title}</h3>
+
+              <p>{resource.description}</p>
+
+              <div className="detail-action-row">
+                <button
+                  type="button"
+                  className="button button-primary"
+                  onClick={() => handleOpenGroupResource(resource)}
+                >
+                  Open
+                </button>
+
+                {resource.url?.includes(
+                  '.private.blob.vercel-storage.com/'
+                ) && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() =>
+                      handleDownloadGroupResource(resource)
+                    }
+                  >
+                    Download
+                  </button>
+                )}
+
+                {resource.canDelete && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    style={{ color: '#dc2626' }}
+                    onClick={() =>
+                      handleDeleteGroupResource(resource)
+                    }
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  </div>
+)}
+   
+      
+<Modal
+  open={showResourceUpload}
+  title="Upload Group Resource"
+  secondaryActionLabel="Cancel"
+  onClose={() => {
+    if (!uploadingResource) setShowResourceUpload(false);
+  }}
+  onSecondaryAction={() => {
+    if (!uploadingResource) setShowResourceUpload(false);
+  }}
+>
+  <p>Share academic materials with {group.name}.</p>
+
+  <label>Resource title</label>
+
+  <input
+    type="text"
+    className="search-input"
+    placeholder="Enter resource title"
+    value={resourceTitle}
+    onChange={event => setResourceTitle(event.target.value)}
+    style={{ width: '100%', marginBottom: 12 }}
+  />
+
+  <label>Select a file</label>
+
+  <input
+    key={resourceInputKey}
+    type="file"
+    accept=".pdf,.doc,.docx,.ppt,.pptx,.xlsx,.txt,.jpg,.jpeg,.png"
+    onChange={event =>
+      setResourceFile(event.target.files?.[0] || null)
+    }
+    style={{ width: '100%', marginBottom: 12 }}
+  />
+
+  {resourceStatus && (
+    <p className="resource-upload-status">
+      {resourceStatus}
+    </p>
+  )}
+
+  <button
+    type="button"
+    className="button button-primary"
+    disabled={uploadingResource}
+    onClick={handleGroupResourceUpload}
+  >
+    {uploadingResource ? 'Uploading...' : 'Upload Resource'}
+  </button>
+</Modal>
+      
+{resourcePreview && (
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-label="Resource preview"
+    style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 9999,
+      background: 'rgba(0,0,0,0.65)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 16
+    }}
+  >
+    <div
+      style={{
+        background: '#fff',
+        width: '95%',
+        height: '90vh',
+        borderRadius: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        style={{
+          padding: 16,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: '#111827'
+        }}
+      >
+        <h3>{resourcePreview.title}</h3>
+
+        <button
+          type="button"
+          className="button button-secondary"
+          onClick={() => setResourcePreview(null)}
+        >
+          Close
+        </button>
+      </div>
+
+      {resourcePreview.type.startsWith('image/') ? (
+        <img
+          src={resourcePreview.url}
+          alt={resourcePreview.title}
+          style={{
+            maxWidth: '100%',
+            flex: 1,
+            minHeight: 0,
+            objectFit: 'contain'
+          }}
+        />
+      ) : (
+        <iframe
+          src={resourcePreview.url}
+          title={resourcePreview.title}
+          style={{
+            width: '100%',
+            flex: 1,
+            border: 'none'
+          }}
+        />
+      )}
+    </div>
+  </div>
+)}
 
       <Modal
         open={Boolean(pendingJoinGroup)}
