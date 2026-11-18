@@ -783,7 +783,7 @@ const availableUploadGroups = studentGroups.filter(group => {
     setNewResourceGroupId(event.target.value)
   }
   className="filter-select"
-  disabled={!newResourceCourseId}
+  //disabled={!newResourceCourseId}
   style={{ marginBottom: 8, width: '100%' }}
 >
   <option value="">Share with course students</option>
