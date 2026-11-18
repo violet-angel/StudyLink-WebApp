@@ -184,18 +184,21 @@ function toSessionSummary(row) {
   };
 }
 
-function toResourceSummary(row) {
-  return {
-    id: row.id,
-    title: row.title,
-    type: row.resource_type || row.type,
-    url: row.url,
-    description: row.description || '',
-    usageNotes: row.usage_notes || '',
-    audience: row.audience || '',
-    downloads: toNumber(row.download_count),
-  };
-}
+  function toResourceSummary(row) {
+    return {
+      id: row.id,
+      createdByUserId: row.created_by_user_id,
+      groupId: row.group_id,
+      courseId: row.course_id,
+      title: row.title,
+      type: row.resource_type || row.type,
+      url: row.url,
+      description: row.description || '',
+      usageNotes: row.usage_notes || '',
+      audience: row.audience || '',
+      downloads: toNumber(row.download_count),
+    };
+  }
 
 async function findUserByEmail(email) {
   const result = await query(
@@ -267,11 +270,15 @@ async function loadResourceById(id) {
   const result = await query(
     `SELECT
       r.*,
-      (SELECT COUNT(*) FROM resource_enrollments re WHERE re.resource_id = r.id) AS download_count
+      sg.owner_user_id AS group_owner_user_id,
+      (SELECT COUNT(*)
+       FROM resource_enrollments re
+       WHERE re.resource_id = r.id) AS download_count
      FROM resources r
+     LEFT JOIN study_groups sg ON sg.id = r.group_id
      WHERE r.id = $1
-     LIMIT 1;`,
-    [id],
+     LIMIT 1`,
+    [id]
   );
 
   return result.rows[0] || null;
@@ -279,6 +286,51 @@ async function loadResourceById(id) {
 
 function canManageEntity(req, ownerUserId) {
   return req.user && (req.user.role === 'admin' || Number(ownerUserId) === Number(req.user.id));
+}
+
+const resourceAccessCondition = `
+  (
+    r.created_by_user_id = $1
+    OR $2 = 'admin'
+    OR (
+      r.group_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM study_groups sg
+        WHERE sg.id = r.group_id
+        AND (
+          sg.owner_user_id = $1
+          OR EXISTS (
+            SELECT 1
+            FROM group_enrollments ge
+            WHERE ge.group_id = sg.id
+            AND ge.user_id = $1
+          )
+        )
+      )
+    )
+    OR (
+      r.group_id IS NULL
+      AND EXISTS (
+        SELECT 1
+        FROM course_enrollments ce
+        WHERE ce.course_id = r.course_id
+        AND ce.user_id = $1
+      )
+    )
+  )
+`;
+
+function canDeleteResource(req, resource) {
+  return (
+    req.user.role === 'admin' ||
+    String(resource.created_by_user_id) === String(req.user.id) ||
+    (
+      resource.group_id != null &&
+      resource.group_owner_user_id != null &&
+      String(resource.group_owner_user_id) === String(req.user.id)
+    )
+  );
 }
 
 app.post('/api/auth/signup', async (req, res) => {
@@ -1792,58 +1844,146 @@ try {
   }
 });
 
-app.get('/api/resources', requireAuth, async (_req, res) => {
-  const result = await query(
-    `SELECT
-      r.*,
-      (SELECT COUNT(*) FROM resource_enrollments re WHERE re.resource_id = r.id) AS download_count
-     FROM resources r
-     ORDER BY r.created_at DESC, r.id DESC;`,
-  );
+app.get('/api/resources', requireAuth, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT
+        r.*,
+        sg.owner_user_id AS group_owner_user_id,
+        (SELECT COUNT(*)
+         FROM resource_enrollments re
+         WHERE re.resource_id = r.id) AS download_count
+       FROM resources r
+       LEFT JOIN study_groups sg ON sg.id = r.group_id
+       WHERE ${resourceAccessCondition}
+       ORDER BY r.created_at DESC, r.id DESC`,
+      [req.user.id, req.user.role]
+    );
 
-  return res.json({ resources: result.rows.map(toResourceSummary) });
+    return res.json({
+      resources: result.rows.map(row => ({
+        ...toResourceSummary(row),
+        canDelete: canDeleteResource(req, row)
+      }))
+    });
+
+  } catch (error) {
+    console.error('RESOURCE LIST ERROR:', error);
+    return res.status(500).json({
+      message: 'Unable to load resources.'
+    });
+  }
 });
+
 
 app.get('/api/resources/:id', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const resourceRow = await loadResourceById(id);
-  if (!resourceRow) {
-    return res.status(404).json({ message: 'Resource not found' });
-  }
+  try {
+    const id = Number(req.params.id);
 
-  const accessResult = await query(
-    `SELECT u.email, u.full_name AS name, re.accessed_at AS enrolled_at
-     FROM resource_enrollments re
-     JOIN users u ON u.id = re.user_id
-     WHERE re.resource_id = $1
-     ORDER BY re.accessed_at ASC;`,
-    [id],
-  );
+    const result = await query(
+      `SELECT
+        r.*,
+        sg.owner_user_id AS group_owner_user_id,
+        (SELECT COUNT(*)
+         FROM resource_enrollments re
+         WHERE re.resource_id = r.id) AS download_count
+       FROM resources r
+       LEFT JOIN study_groups sg ON sg.id = r.group_id
+       WHERE r.id = $3
+       AND ${resourceAccessCondition}`,
+      [req.user.id, req.user.role, id]
+    );
 
-  return res.json({
-    resource: {
-      ...toResourceSummary(resourceRow),
-      accesses: accessResult.rows.map((row) => ({
+    const resource = result.rows[0];
+
+    if (!resource) {
+      return res.status(404).json({
+        message: 'Resource not found or access denied.'
+      });
+    }
+
+    const canDelete = canDeleteResource(req, resource);
+
+    let accesses = [];
+
+    if (canDelete) {
+      const accessResult = await query(
+        `SELECT
+          u.email,
+          u.full_name AS name,
+          re.accessed_at AS enrolled_at
+         FROM resource_enrollments re
+         JOIN users u ON u.id = re.user_id
+         WHERE re.resource_id = $1
+         ORDER BY re.accessed_at ASC`,
+        [id]
+      );
+
+      accesses = accessResult.rows.map(row => ({
         email: row.email,
         name: row.name,
-        enrolledAt: row.enrolled_at,
-      })),
-    },
-  });
+        enrolledAt: row.enrolled_at
+      }));
+    }
+
+    return res.json({
+      resource: {
+        ...toResourceSummary(resource),
+        canDelete,
+        accesses
+      }
+    });
+
+  } catch (error) {
+    console.error('RESOURCE ACCESS ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to access resource.'
+    });
+  }
 });
+
 
 // Get current user's saved resources (personal library)
-app.get('/api/my/resources', requireAuth, async (req, res) => {
-  const result = await query(
-    `SELECT r.* FROM resources r
-     JOIN resource_enrollments re ON re.resource_id = r.id
-     WHERE re.user_id = $1
-     ORDER BY re.accessed_at DESC NULLS LAST, r.id DESC;`,
-    [req.user.id],
-  );
 
-  return res.json({ resources: result.rows.map(toResourceSummary) });
+app.get('/api/my/resources', requireAuth, async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT
+        r.*,
+        sg.owner_user_id AS group_owner_user_id
+       FROM resources r
+       LEFT JOIN study_groups sg ON sg.id = r.group_id
+       WHERE ${resourceAccessCondition}
+       AND (
+         r.created_by_user_id = $1
+         OR EXISTS (
+           SELECT 1
+           FROM resource_enrollments re
+           WHERE re.resource_id = r.id
+           AND re.user_id = $1
+         )
+       )
+       ORDER BY r.created_at DESC, r.id DESC`,
+      [req.user.id, req.user.role]
+    );
+
+    return res.json({
+      resources: result.rows.map(row => ({
+        ...toResourceSummary(row),
+        canDelete: canDeleteResource(req, row)
+      }))
+    });
+
+  } catch (error) {
+    console.error('MY RESOURCES ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to load your resources.'
+    });
+  }
 });
+
 
 // Remove a resource from current user's library
 app.delete('/api/my/resources/:id', requireAuth, async (req, res) => {
@@ -1853,100 +1993,187 @@ app.delete('/api/my/resources/:id', requireAuth, async (req, res) => {
 });
 
 
+
 app.post('/api/resources', requireAuth, async (req, res) => {
-  const {
-    title,
-    resourceType,
-    url,
-    description,
-    usageNotes,
-    audience,
-    courseId
-  } = req.body;
-
-  if (!title || !resourceType || !url) {
-    return res.status(400).json({
-      message: 'Title, type, and URL are required.'
-    });
-  }
-
-  const parsedCourseId = Number(courseId);
-
-  if (!Number.isSafeInteger(parsedCourseId) || parsedCourseId <= 0) {
-    return res.status(400).json({
-      message: 'Please select a valid course.'
-    });
-  }
-
-  const courseResult = await query(
-    'SELECT id FROM courses WHERE id = $1',
-    [parsedCourseId]
-  );
-
-  if (!courseResult.rows.length) {
-    return res.status(404).json({
-      message: 'Selected course not found.'
-    });
-  }
-
-  const result = await query(
-    `INSERT INTO resources (
+  try {
+    const {
       title,
-      resource_type,
+      resourceType,
       url,
       description,
-      usage_notes,
+      usageNotes,
       audience,
-      created_by_user_id,
-      course_id
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-    RETURNING id`,
-    [
-      String(title).trim(),
-      String(resourceType).trim(),
-      String(url).trim(),
-      description ? String(description).trim() : null,
-      usageNotes ? String(usageNotes).trim() : null,
-      audience ? String(audience).trim() : null,
-      req.user.id,
-      parsedCourseId
-    ]
-  );
+      courseId,
+      groupId
+    } = req.body;
 
-  const resourceId = result.rows[0].id;
+    if (!title || !resourceType || !url) {
+      return res.status(400).json({
+        message: 'Title, type, and URL are required.'
+      });
+    }
 
-  try {
-    await query(
-      `INSERT INTO student_notifications
-         (user_id, kind, title, body, href)
-       SELECT
-         ce.user_id,
-         'new_resource',
-         'New Study Resource Available',
-         $2,
-         '/resources'
-       FROM course_enrollments ce
-       WHERE ce.course_id = $1
-         AND ce.user_id <> $3`,
+    const parsedCourseId = Number(courseId);
+    const parsedGroupId = groupId ? Number(groupId) : null;
+
+    if (!Number.isSafeInteger(parsedCourseId) || parsedCourseId <= 0) {
+      return res.status(400).json({
+        message: 'Please select a valid course.'
+      });
+    }
+
+    const courseResult = await query(
+      'SELECT id, code FROM courses WHERE id = $1',
+      [parsedCourseId]
+    );
+
+    if (!courseResult.rows.length) {
+      return res.status(404).json({
+        message: 'Selected course not found.'
+      });
+    }
+
+    if (parsedGroupId !== null) {
+      if (!Number.isSafeInteger(parsedGroupId) || parsedGroupId <= 0) {
+        return res.status(400).json({
+          message: 'Invalid study group.'
+        });
+      }
+
+      const groupResult = await query(
+        `SELECT sg.id, sg.course_code
+         FROM study_groups sg
+         WHERE sg.id = $1
+         AND (
+           sg.owner_user_id = $2
+           OR $3 = 'admin'
+           OR EXISTS (
+             SELECT 1
+             FROM group_enrollments ge
+             WHERE ge.group_id = sg.id
+             AND ge.user_id = $2
+           )
+         )`,
+        [parsedGroupId, req.user.id, req.user.role]
+      );
+
+      if (!groupResult.rows.length) {
+        return res.status(403).json({
+          message: 'You cannot upload resources to this group.'
+        });
+      }
+
+      if (
+        String(groupResult.rows[0].course_code || '').trim().toUpperCase() !==
+        String(courseResult.rows[0].code || '').trim().toUpperCase()
+      ) {
+        return res.status(400).json({
+          message: 'The selected course does not match the study group.'
+        });
+      }
+    }
+
+    const result = await query(
+      `INSERT INTO resources (
+        title,
+        resource_type,
+        url,
+        description,
+        usage_notes,
+        audience,
+        created_by_user_id,
+        course_id,
+        group_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      RETURNING id`,
       [
+        String(title).trim(),
+        String(resourceType).trim(),
+        String(url).trim(),
+        description ? String(description).trim() : null,
+        usageNotes ? String(usageNotes).trim() : null,
+        parsedGroupId
+          ? 'Study group members'
+          : audience || 'Enrolled course students',
+        req.user.id,
         parsedCourseId,
-        `A new study resource "${String(title).trim()}" is available.`,
-        req.user.id
+        parsedGroupId
       ]
     );
-  } catch (notificationError) {
-    console.error(
-      'Resource created, but notification failed:',
-      notificationError
-    );
+
+    const resourceId = result.rows[0].id;
+
+    try {
+      if (parsedGroupId) {
+        await query(
+          `INSERT INTO student_notifications
+             (user_id, kind, title, body, href)
+           SELECT
+             members.user_id,
+             'new_resource',
+             'New Group Resource',
+             $2,
+             '/resources'
+           FROM (
+             SELECT user_id
+             FROM group_enrollments
+             WHERE group_id = $1
+
+             UNION
+
+             SELECT owner_user_id AS user_id
+             FROM study_groups
+             WHERE id = $1
+           ) members
+           WHERE members.user_id <> $3`,
+          [
+            parsedGroupId,
+            `A new resource "${String(title).trim()}" has been shared in your study group.`,
+            req.user.id
+          ]
+        );
+      } else {
+        await query(
+          `INSERT INTO student_notifications
+             (user_id, kind, title, body, href)
+           SELECT
+             ce.user_id,
+             'new_resource',
+             'New Study Resource Available',
+             $2,
+             '/resources'
+           FROM course_enrollments ce
+           WHERE ce.course_id = $1
+           AND ce.user_id <> $3`,
+          [
+            parsedCourseId,
+            `A new study resource "${String(title).trim()}" is available.`,
+            req.user.id
+          ]
+        );
+      }
+    } catch (notificationError) {
+      console.error(
+        'Resource notification failed:',
+        notificationError
+      );
+    }
+
+    const created = await loadResourceById(resourceId);
+
+    return res.status(201).json({
+      resource: toResourceSummary(created)
+    });
+
+  } catch (error) {
+    console.error('RESOURCE CREATION ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to create resource.'
+    });
   }
-
-  const created = await loadResourceById(resourceId);
-
-  return res.status(201).json({
-    resource: toResourceSummary(created)
-  });
 });
+
 
 
 app.patch('/api/resources/:id', requireAuth, async (req, res) => {
@@ -1990,39 +2217,114 @@ app.patch('/api/resources/:id', requireAuth, async (req, res) => {
 });
 
 app.delete('/api/resources/:id', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const existing = await loadResourceById(id);
-  if (!existing) {
-    return res.status(404).json({ message: 'Resource not found' });
-  }
+  try {
+    const id = Number(req.params.id);
 
-  const creatorResult = await query('SELECT created_by_user_id FROM resources WHERE id = $1 LIMIT 1;', [id]);
-  const creatorUserId = creatorResult.rows[0]?.created_by_user_id;
-  if (!canManageEntity(req, creatorUserId)) {
-    return res.status(403).json({ message: 'You do not have permission to delete this resource.' });
-  }
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: 'Invalid resource ID.'
+      });
+    }
 
-  await query('DELETE FROM resources WHERE id = $1;', [id]);
-  return res.status(204).send();
+    const result = await query(
+      `SELECT
+        r.id,
+        r.created_by_user_id,
+        r.group_id,
+        sg.owner_user_id AS group_owner_user_id
+      FROM resources r
+      LEFT JOIN study_groups sg ON sg.id = r.group_id
+      WHERE r.id = $1`,
+      [id]
+    );
+
+    const resource = result.rows[0];
+
+    if (!resource) {
+      return res.status(404).json({
+        message: 'Resource not found.'
+      });
+    }
+
+    const isSystemAdmin = req.user.role === 'admin';
+
+    const isUploader =
+      String(resource.created_by_user_id) === String(req.user.id);
+
+    const isGroupAdmin =
+      resource.group_id != null &&
+      resource.group_owner_user_id != null &&
+      String(resource.group_owner_user_id) === String(req.user.id);
+
+    if (!isSystemAdmin && !isUploader && !isGroupAdmin) {
+      return res.status(403).json({
+        message: 'You do not have permission to delete this resource.'
+      });
+    }
+
+    await query(
+      'DELETE FROM resources WHERE id = $1',
+      [id]
+    );
+
+    return res.status(204).send();
+
+  } catch (error) {
+    console.error('RESOURCE DELETE ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to delete resource.'
+    });
+  }
 });
+
 
 app.post('/api/resources/:id/enroll', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const resource = await loadResourceById(id);
-  if (!resource) {
-    return res.status(404).json({ message: 'Resource not found' });
+  try {
+    const id = Number(req.params.id);
+
+    const result = await query(
+      `SELECT r.*
+       FROM resources r
+       WHERE r.id = $3
+       AND ${resourceAccessCondition}`,
+      [req.user.id, req.user.role, id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        message: 'Resource not found or access denied.'
+      });
+    }
+
+    await query(
+      `INSERT INTO resource_enrollments (
+        resource_id,
+        user_id
+      )
+      VALUES ($1, $2)
+      ON CONFLICT (resource_id, user_id) DO NOTHING`,
+      [id, req.user.id]
+    );
+
+    const updated = await loadResourceById(id);
+
+    return res.json({
+      resource: {
+        ...toResourceSummary(updated),
+        canDelete: canDeleteResource(req, updated)
+      }
+    });
+
+  } catch (error) {
+    console.error('RESOURCE ENROLMENT ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to save resource.'
+    });
   }
-
-  await query(
-    `INSERT INTO resource_enrollments (resource_id, user_id)
-     VALUES ($1, $2)
-     ON CONFLICT (resource_id, user_id) DO NOTHING;`,
-    [id, req.user.id],
-  );
-
-  const updated = await loadResourceById(id);
-  return res.json({ resource: toResourceSummary(updated) });
 });
+
 
 // Academic management endpoints (schools / programs / courses)
 app.get('/api/academic/schools', requireAuth, async (_req, res) => {
@@ -2263,22 +2565,23 @@ app.post('/api/uploads', requireAuth, async (req, res) => {
 });
 
 // Authenticated resource download
+
 app.get('/api/resources/:id/download', requireAuth, async (req, res) => {
   try {
+    const id = Number(req.params.id);
+
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({
+        message: 'Invalid resource ID.'
+      });
+    }
+
     const result = await query(
       `SELECT r.*
        FROM resources r
-       WHERE r.id = $1
-       AND (
-         r.created_by_user_id = $2
-         OR $3 = 'admin'
-         OR EXISTS (
-           SELECT 1 FROM course_enrollments ce
-           WHERE ce.course_id = r.course_id
-           AND ce.user_id = $2
-         )
-       )`,
-      [Number(req.params.id), req.user.id, req.user.role]
+       WHERE r.id = $3
+       AND ${resourceAccessCondition}`,
+      [req.user.id, req.user.role, id]
     );
 
     const resource = result.rows[0];
@@ -2312,10 +2615,24 @@ app.get('/api/resources/:id/download', requireAuth, async (req, res) => {
       });
     }
 
-    res.setHeader('Content-Type', blob.blob.contentType);
+    const contentType = blob.blob.contentType;
+
+    const previewable = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'text/plain'
+    ].includes(contentType);
+
+    const disposition =
+      req.query.mode === 'preview' && previewable
+        ? 'inline'
+        : 'attachment';
+
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'private, no-store');
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Disposition', 'attachment');
+    res.setHeader('Content-Disposition', disposition);
 
     const file = await new Response(blob.stream).arrayBuffer();
 
@@ -2325,10 +2642,11 @@ app.get('/api/resources/:id/download', requireAuth, async (req, res) => {
     console.error('DOWNLOAD ERROR:', error);
 
     return res.status(500).json({
-      message: 'Unable to download resource.'
+      message: 'Unable to open or download resource.'
     });
   }
 });
+
 
 
 app.use((_req, res) => {

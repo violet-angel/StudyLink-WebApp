@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/apiClient';
 import { buildMergedCourses, getAllCatalogResources, getCatalogCourseByCode, getResourcesForCourse } from '../lib/studylinkContent';
 
 type ResourceItem = {
+  canDelete?: boolean;
+  createdByUserId?: string | number;
   id: string | number;
   title: string;
   type: string;
@@ -88,10 +90,41 @@ function LearningHub() {
   const [hiddenResourceIds, setHiddenResourceIds] = useState<string[]>(() => loadHiddenResources());
   const [newResourceTitle, setNewResourceTitle] = useState('');
   const [newResourceCourseId, setNewResourceCourseId] = useState('');
+  const [newResourceGroupId, setNewResourceGroupId] = useState('');
+  const [studentGroups, setStudentGroups] = useState<any[]>([]);
   const [newResourceUrl, setNewResourceUrl] = useState('');
   const [newResourceFile, setNewResourceFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [resourceUploading, setResourceUploading] = useState(false);
   const [resourceUploadStatus, setResourceUploadStatus] = useState<string>('');
+  const [preview, setPreview] = useState<{
+    url: string;
+    title: string;
+    type: string;
+  } | null>(null);
+
+  const [currentUser, setCurrentUser] = useState<{
+    id: string | number;
+    role: string;
+  } | null>(null);
+
+  useEffect(() => {
+    apiFetch('/api/auth/me')
+      .then(response => {
+        if (!response.ok) throw new Error('Authentication required');
+        return response.json();
+      })
+      .then(data => setCurrentUser(data.user))
+      .catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (preview?.url) {
+        URL.revokeObjectURL(preview.url);
+      }
+    };
+  }, [preview]);
 
   useEffect(() => {
     setSelectedView(initialView);
@@ -119,6 +152,8 @@ function LearningHub() {
         setCatalogCourses(buildMergedCourses(courseData.courses || []));
         const libraryResourcesFromApi = (libraryData.resources || []).map((resource: any) => ({
           id: resource.id,
+          createdByUserId: resource.createdByUserId,
+          canDelete: resource.canDelete,
           title: resource.title,
           type: resource.type || 'Resource',
           url: resource.url,
@@ -140,6 +175,8 @@ function LearningHub() {
           ...catalogResources,
           ...(resourcesData.resources || []).map((resource: any) => ({
             id: resource.id,
+            createdByUserId: resource.createdByUserId,
+            canDelete: resource.canDelete,
             title: resource.title,
             type: resource.type || 'Resource',
             url: resource.url,
@@ -172,6 +209,43 @@ function LearningHub() {
     };
   }, []);
 
+  useEffect(() => {
+  apiFetch('/api/groups')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Unable to load study groups.');
+      }
+
+      return response.json();
+    })
+    .then(data => {
+      setStudentGroups(
+        (data.groups || []).filter(
+          (group: any) => group.isMember || group.isOwner
+        )
+      );
+    })
+    .catch(console.error);
+}, []);
+
+useEffect(() => {
+  setNewResourceGroupId('');
+}, [newResourceCourseId]);
+
+const availableUploadGroups = studentGroups.filter(group => {
+  const selectedCourse = catalogCourses.find(
+    course => String(course.id) === newResourceCourseId
+  );
+
+  const groupCourseCode = group.courseCode || group.course_code || '';
+
+  return (
+    selectedCourse &&
+    groupCourseCode &&
+    String(groupCourseCode).trim().toUpperCase() ===
+    String(selectedCourse.code).trim().toUpperCase()
+  );
+});
   const enrolledCourses = useMemo(
     () => catalogCourses.filter((course) => course.isEnrolled),
     [catalogCourses],
@@ -193,6 +267,8 @@ function LearningHub() {
 
     const savedResources = apiLibraryResources.map((resource) => ({
       id: String(resource.id),
+      createdByUserId: resource.createdByUserId,
+      canDelete: resource.canDelete,
       title: resource.title,
       type: resource.type || 'Resource',
       url: resource.url,
@@ -210,7 +286,7 @@ function LearningHub() {
     }));
 
     const dedupe = new Map<string, ResourceItem>();
-    [...recommendedResources, ...savedResources].forEach((resource) => {
+    [...savedResources, ...recommendedResources].forEach((resource) => {
       dedupe.set(String(resource.id), resource);
     });
 
@@ -250,65 +326,169 @@ function LearningHub() {
   }, [baseResources, searchTerm, selectedSchool, selectedType, selectedView]);
 
   
-const handleAccess = async (resource: ResourceItem) => {
-  const resourceUrl = resource.url || resource.fallbackUrl;
 
-  if (
-    resourceUrl &&
-    resourceUrl.includes('.private.blob.vercel-storage.com/')
-  ) {
+  const handleAccess = async (resource: ResourceItem) => {
+    const resourceUrl = resource.url || resource.fallbackUrl;
+
+    if (resourceUrl?.includes('.private.blob.vercel-storage.com/')) {
+      try {
+        const response = await apiFetch(
+          `/api/resources/${resource.id}/download?mode=preview`
+        );
+
+        if (!response.ok) {
+          throw new Error('Unable to open resource.');
+        }
+
+        const file = await response.blob();
+
+        const supportedTypes = [
+          'application/pdf',
+          'image/png',
+          'image/jpeg',
+          'text/plain'
+        ];
+
+        if (!supportedTypes.includes(file.type)) {
+          alert('Preview unavailable. Please use Download.');
+          return;
+        }
+
+        setPreview({
+          url: URL.createObjectURL(file),
+          title: resource.title,
+          type: file.type
+        });
+
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : 'Unable to open resource.'
+        );
+      }
+
+      return;
+    }
+
+    if (resourceUrl) {
+      window.open(resourceUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const queryParams = new URLSearchParams();
+
+    if (resource.courseCode) {
+      queryParams.set('courseCode', resource.courseCode);
+    }
+
+    navigate(
+      `/resources/${encodeURIComponent(String(resource.id))}?${queryParams.toString()}`
+    );
+  };
+
+
+  
+  const isUploadedFile = (resource: ResourceItem) => {
+    return Boolean(
+      resource.url?.includes('.private.blob.vercel-storage.com/')
+    );
+  };
+
+  const handleDownload = async (resource: ResourceItem) => {
     try {
       const response = await apiFetch(
         `/api/resources/${resource.id}/download`
       );
 
       if (!response.ok) {
-        const error = await response.json().catch(() => null);
-        throw new Error(error?.message || 'Download failed.');
+        throw new Error('Unable to download resource.');
       }
 
       const file = await response.blob();
-      const objectUrl = URL.createObjectURL(file);
+      const url = URL.createObjectURL(file);
 
       const link = document.createElement('a');
-      link.href = objectUrl;
 
-      const filename = new URL(resourceUrl).pathname.split('/').pop();
-      link.download = filename || resource.title;
+      link.href = url;
+      link.download =
+        new URL(resource.url).pathname.split('/').pop() ||
+        resource.title;
 
       document.body.appendChild(link);
       link.click();
       link.remove();
 
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
     } catch (error) {
       alert(
         error instanceof Error
           ? error.message
-          : 'Unable to download resource.'
+          : 'Download failed.'
       );
     }
+  };
 
-    return;
+  const canDeleteResource = (resource: ResourceItem) => {
+  if (resource.isCatalog) return false;
+
+  if (typeof resource.canDelete === 'boolean') {
+    return resource.canDelete;
   }
 
-  if (resourceUrl) {
-    window.open(resourceUrl, '_blank', 'noopener,noreferrer');
-    return;
-  }
+  if (!currentUser) return false;
 
-  const queryParams = new URLSearchParams();
-
-  if (resource.courseCode) {
-    queryParams.set('courseCode', resource.courseCode);
-  }
-
-  navigate(
-    `/resources/${encodeURIComponent(String(resource.id))}?${queryParams.toString()}`
+  return (
+    currentUser.role === 'admin' ||
+    (
+      resource.createdByUserId != null &&
+      String(resource.createdByUserId) === String(currentUser.id)
+    )
   );
 };
 
+  const handleDeleteResource = async (resource: ResourceItem) => {
+    if (!canDeleteResource(resource)) return;
+
+    if (!window.confirm(`Delete "${resource.title}" permanently?`)) {
+      return;
+    }
+
+    try {
+      const response = await apiFetch(
+        `/api/resources/${resource.id}`,
+        { method: 'DELETE' }
+      );
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.message || 'Unable to delete resource.');
+      }
+
+      setAllResources(current =>
+        current.filter(item =>
+          item.isCatalog ||
+          String(item.id) !== String(resource.id)
+        )
+      );
+
+      setApiLibraryResources(current =>
+        current.filter(item =>
+          String(item.id) !== String(resource.id)
+        )
+      );
+
+      setResourceUploadStatus('Resource deleted successfully.');
+
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Unable to delete resource.'
+      );
+    }
+  };
 
   const handleAddLibraryResource = async () => {
     if (newResourceFile && newResourceFile.size > 3 * 1024 * 1024) {
@@ -385,6 +565,9 @@ const handleAccess = async (resource: ResourceItem) => {
           usageNotes: 'Uploaded by user.',
           audience: 'Enrolled course students',
           courseId: selectedCourseId,
+          groupId: newResourceGroupId
+            ? Number(newResourceGroupId)
+            : null,
         }),
 
       });
@@ -397,6 +580,7 @@ const handleAccess = async (resource: ResourceItem) => {
       if (savedResource) {
         const newResourceItem = {
           id: savedResource.id,
+          createdByUserId: savedResource.createdByUserId,
           title: savedResource.title,
           type: savedResource.type || 'Resource',
           url: savedResource.url,
@@ -413,13 +597,17 @@ const handleAccess = async (resource: ResourceItem) => {
           category: getResourceCategory(savedResource),
         };
 
-        setApiLibraryResources((current) => [...current, savedResource]);
-        setAllResources((current) => [...current, newResourceItem]);
+        setApiLibraryResources((current) => [savedResource, ...current]);
+        setAllResources((current) => [newResourceItem, ...current]);
       }
       setNewResourceTitle('');
       setNewResourceUrl('');
       setNewResourceFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       setNewResourceCourseId('');
+      setNewResourceGroupId('');
       setResourceUploadStatus('Resource added successfully.');
     
       } catch (error) {
@@ -471,6 +659,81 @@ const handleAccess = async (resource: ResourceItem) => {
 
   return (
     <section className="workspace-page">
+
+      {preview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Resource preview"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.65)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              width: '95%',
+              height: '90vh',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}
+          >
+            <div
+              style={{
+                padding: '15px 20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid #e5e7eb',
+                color: '#111827'
+              }}
+            >
+              <h3>{preview.title}</h3>
+
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => setPreview(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            {preview.type.startsWith('image/') ? (
+              <img
+                src={preview.url}
+                alt={preview.title}
+                style={{
+                  maxWidth: '100%',
+                  flex: 1,
+                  minHeight: 0,
+                  objectFit: 'contain'
+                }}
+              />
+            ) : (
+              <iframe
+                src={preview.url}
+                title={preview.title}
+                style={{
+                  width: '100%',
+                  flex: 1,
+                  border: 'none'
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="container workspace-stack">
         <section className="workspace-hero workspace-hero-resources">
           <div>
@@ -513,7 +776,28 @@ const handleAccess = async (resource: ResourceItem) => {
           <div className="resource-upload-panel">
             <h3>Add or upload a resource</h3>
 
-            
+
+<select
+  value={newResourceGroupId}
+  onChange={(event) =>
+    setNewResourceGroupId(event.target.value)
+  }
+  className="filter-select"
+  disabled={!newResourceCourseId}
+  style={{ marginBottom: 8, width: '100%' }}
+>
+  <option value="">Share with course students</option>
+
+  {availableUploadGroups.map(group => (
+    <option
+      key={group.id}
+      value={String(group.id)}
+    >
+      Share with group: {group.name}
+    </option>
+  ))}
+</select>
+     
           
           <select
             value={newResourceCourseId}
@@ -559,6 +843,7 @@ const handleAccess = async (resource: ResourceItem) => {
             />
             <input
               type="file"
+              ref={fileInputRef}
               onChange={(event) => setNewResourceFile(event.target.files && event.target.files[0] ? event.target.files[0] : null)}
               style={{ marginBottom: 8 }}
             />
@@ -621,9 +906,36 @@ const handleAccess = async (resource: ResourceItem) => {
                   </div>
                 </div>
                 <div className="detail-action-row">
-                  <button type="button" className="button button-primary" onClick={() => handleAccess(resource)}>
-                    Open
+                  
+                <button
+                  type="button"
+                  className="button button-primary"
+                  onClick={() => handleAccess(resource)}
+                >
+                  Open
+                </button>
+
+                {isUploadedFile(resource) && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    onClick={() => handleDownload(resource)}
+                  >
+                    Download
                   </button>
+                )}
+
+                {canDeleteResource(resource) && (
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    style={{ color: '#dc2626' }}
+                    onClick={() => handleDeleteResource(resource)}
+                  >
+                    Delete
+                  </button>
+                )}
+
                   {selectedView === 'library' ? (
                     <button type="button" className="button button-secondary" onClick={() => handleHide(resource)}>
                       Hide
