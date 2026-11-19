@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { apiFetch } from '../lib/apiClient';
-import { buildCourseContent, buildStudyLinkAiResponse, saveSupplementalEnrollmentCode } from '../lib/studylinkContent';
+import { buildCourseContent, buildStudyLinkAiResponse } from '../lib/studylinkContent';
 import { addNotification } from '../lib/notifications';
 
 const hubTabs = [
   { key: 'overview', label: 'Overview' },
+  { key: 'shared', label: 'Shared Resources' },
   { key: 'notes', label: 'Notes' },
   { key: 'pdfs', label: 'PDFs' },
   { key: 'podcasts', label: 'Podcasts' },
@@ -25,6 +26,14 @@ function CourseDetail() {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [question, setQuestion] = useState('Give me notes and revision guidance for the hardest topic in this course.');
   const [submittedQuestion, setSubmittedQuestion] = useState(question);
+  const [sharedResources, setSharedResources] = useState<any[]>([]);
+  const [sharedResourceError, setSharedResourceError] = useState('');
+
+  const [resourcePreview, setResourcePreview] = useState<{
+    url: string;
+    title: string;
+    type: string;
+  } | null>(null);
 
   useEffect(() => {
     const hash = window.location.hash.replace('#', '');
@@ -42,6 +51,83 @@ function CourseDetail() {
       .catch(() => setCourse(buildCourseContent({ id })))
       .finally(() => setLoading(false));
   }, [id]);
+
+
+useEffect(() => {
+  if (!course?.code) return;
+
+  let active = true;
+
+  setSharedResources([]);
+  setSharedResourceError('');
+
+  const loadSharedResources = async () => {
+    try {
+      const [coursesResponse, resourcesResponse] =
+        await Promise.all([
+          apiFetch('/api/courses'),
+          apiFetch('/api/resources')
+        ]);
+
+      if (!coursesResponse.ok || !resourcesResponse.ok) {
+        throw new Error('Unable to load shared resources.');
+      }
+
+      const coursesData = await coursesResponse.json();
+      const resourcesData = await resourcesResponse.json();
+
+      const matchedCourse = (coursesData.courses || []).find(
+        (item: any) =>
+          String(item.id) === String(course.id)
+      ) || (coursesData.courses || []).find(
+        (item: any) =>
+          String(item.code).trim().toUpperCase() ===
+          String(course.code).trim().toUpperCase()
+      );
+
+      if (!active) return;
+
+      if (!matchedCourse) {
+        setSharedResourceError(
+          'This course is not registered in the database.'
+        );
+        return;
+      }
+
+      const items = (resourcesData.resources || []).filter(
+        (resource: any) =>
+          resource.groupId == null &&
+          String(resource.courseId) === String(matchedCourse.id)
+      );
+
+      setSharedResources(items);
+
+    } catch (error) {
+      if (active) {
+        setSharedResourceError(
+          error instanceof Error
+            ? error.message
+            : 'Unable to load shared resources.'
+        );
+      }
+    }
+  };
+
+  loadSharedResources();
+
+  return () => {
+    active = false;
+  };
+}, [course?.id, course?.code, course?.isEnrolled]);
+
+useEffect(() => {
+  return () => {
+    if (resourcePreview?.url) {
+      URL.revokeObjectURL(resourcePreview.url);
+    }
+  };
+}, [resourcePreview]);
+
 
   const resourcesByType = useMemo(() => {
     const resources = course?.resources || [];
@@ -100,114 +186,274 @@ function CourseDetail() {
   }
 
   const handleEnroll = async () => {
-    if (!course) return;
-    try {
-      const response = await apiFetch(`/api/courses/${course.id}/enroll`, { method: 'POST' });
-      if (!response.ok) {
-        throw new Error('Local enrollment fallback');
-      }
-      const data = await response.json();
-      setCourse(buildCourseContent(data.course));
-    } catch {
-      saveSupplementalEnrollmentCode(course.code);
-      setCourse((current: any) => current ? { ...current, isEnrolled: true, enrolledCount: Number(current.enrolledCount || 0) + 1 } : current);
+  if (!course || course.isEnrolled) return;
+
+  try {
+    const response = await apiFetch(
+      `/api/courses/${course.id}/enroll`,
+      { method: 'POST' }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || 'Unable to enroll in this course.'
+      );
     }
-  };
 
-  const renderResourceGrid = (items: any[], buttonLabel: string) => (
-    <div className="detail-card-grid">
-      {items.map((item) => {
-        const itemUrl = item.url || item.fallbackUrl;
-        const externalUrl = item.url;
-        const isDataUrl = typeof item.url === 'string' && item.url.startsWith('data:');
-        const isFallbackDataUrl = typeof item.fallbackUrl === 'string' && item.fallbackUrl.startsWith('data:');
+    setCourse(buildCourseContent(data.course));
 
-        return (
-          <article key={item.id} className="detail-summary-card">
-            <strong>{item.title}</strong>
-            <p>{item.description}</p>
-            <span>{item.audience}</span>
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-              {itemUrl ? (
-                <a
-                  href={itemUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="button button-secondary button-sm"
-                >
-                  {buttonLabel}
-                </a>
-              ) : null}
-              {item.fallbackUrl && externalUrl ? (
-                <a
-                  href={externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="button button-tertiary button-sm"
-                >
-                  Open external
-                </a>
-              ) : null}
-              {isDataUrl ? (
-                <button
-                  type="button"
-                  className="button button-primary button-sm"
-                  onClick={async () => {
-                    try {
-                      const [, meta, body] = item.url.match(/^data:([^;]+);base64,(.*)$/) || [];
-                      const ext = meta && meta.includes('html') ? 'html' : (meta && meta.split('/')[1]) || 'bin';
-                      const filename = `${item.id || 'resource'}.${ext}`;
-                      const resp = await apiFetch('/api/uploads', { method: 'POST', body: JSON.stringify({ filename, data: body }) });
-                      if (resp.ok) {
-                        const data = await resp.json();
-                        window.open(data.url, '_blank', 'noopener,noreferrer');
-                        addNotification({ id: `download-${Date.now()}`, title: 'Saved', message: 'Resource saved and opened.', createdAt: new Date().toISOString() });
-                      } else {
-                        addNotification({ id: `download-fail-${Date.now()}`, title: 'Save failed', message: 'Could not save resource.', createdAt: new Date().toISOString() });
-                      }
-                    } catch (err) {
-                      // eslint-disable-next-line no-console
-                      console.error(err);
-                      addNotification({ id: `download-ex-${Date.now()}`, title: 'Error', message: 'Failed to save resource.', createdAt: new Date().toISOString() });
-                    }
-                  }}
-                >
-                  Download
-                </button>
-              ) : null}
-              {isFallbackDataUrl ? (
-                <button
-                  type="button"
-                  className="button button-primary button-sm"
-                  onClick={async () => {
-                    try {
-                      const [, meta, body] = item.fallbackUrl.match(/^data:([^;]+);base64,(.*)$/) || [];
-                      const ext = meta && meta.includes('html') ? 'html' : (meta && meta.split('/')[1]) || 'bin';
-                      const filename = `${item.id || 'resource'}.${ext}`;
-                      const resp = await apiFetch('/api/uploads', { method: 'POST', body: JSON.stringify({ filename, data: body }) });
-                      if (resp.ok) {
-                        const data = await resp.json();
-                        window.open(data.url, '_blank', 'noopener,noreferrer');
-                        addNotification({ id: `download-${Date.now()}`, title: 'Saved', message: 'Resource saved and opened.', createdAt: new Date().toISOString() });
-                      } else {
-                        addNotification({ id: `download-fail-${Date.now()}`, title: 'Save failed', message: 'Could not save resource.', createdAt: new Date().toISOString() });
-                      }
-                    } catch (err) {
-                      // eslint-disable-next-line no-console
-                      console.error(err);
-                      addNotification({ id: `download-ex-${Date.now()}`, title: 'Error', message: 'Failed to save resource.', createdAt: new Date().toISOString() });
-                    }
-                  }}
-                >
-                  Download in-app
-                </button>
-              ) : null}
-            </div>
-          </article>
-        );
-      })}
-    </div>
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Course enrollment failed.'
+    );
+  }
+};
+
+
+const isPrivateCourseFile = (resource: any) =>
+  Boolean(
+    resource.url?.includes(
+      '.private.blob.vercel-storage.com/'
+    )
   );
+
+const handleOpenSharedResource = async (resource: any) => {
+  try {
+    if (!isPrivateCourseFile(resource)) {
+      const url = new URL(resource.url);
+
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        throw new Error('Invalid resource URL.');
+      }
+
+      window.open(url.href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const response = await apiFetch(
+      `/api/resources/${resource.id}/download?mode=preview`
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to open resource.');
+    }
+
+    const file = await response.blob();
+
+    const supportedTypes = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'text/plain'
+    ];
+
+    if (!supportedTypes.includes(file.type)) {
+      throw new Error(
+        'Preview unavailable. Please use Download.'
+      );
+    }
+
+    setResourcePreview({
+      url: URL.createObjectURL(file),
+      title: resource.title,
+      type: file.type
+    });
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to open resource.'
+    );
+  }
+};
+
+const handleDownloadSharedResource = async (resource: any) => {
+  try {
+    const response = await apiFetch(
+      `/api/resources/${resource.id}/download`
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to download resource.');
+    }
+
+    const file = await response.blob();
+    const url = URL.createObjectURL(file);
+
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download =
+      new URL(resource.url).pathname.split('/').pop() ||
+      resource.title;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Download failed.'
+    );
+  }
+};
+
+const handleDeleteSharedResource = async (resource: any) => {
+  if (!resource.canDelete) return;
+
+  if (!window.confirm(`Delete "${resource.title}" permanently?`)) {
+    return;
+  }
+
+  try {
+    const response = await apiFetch(
+      `/api/resources/${resource.id}`,
+      { method: 'DELETE' }
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to delete resource.');
+    }
+
+    setSharedResources(current =>
+      current.filter(
+        item => String(item.id) !== String(resource.id)
+      )
+    );
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to delete resource.'
+    );
+  }
+};
+
+  
+const renderResourceGrid = (items: any[], buttonLabel: string) => (
+  <div className="detail-card-grid">
+    {items.map((item) => {
+      const itemUrl = item.url || item.fallbackUrl;
+
+      const downloadableUrl =
+        typeof item.fallbackUrl === 'string' &&
+        item.fallbackUrl.startsWith('data:')
+          ? item.fallbackUrl
+          : typeof item.url === 'string' &&
+            item.url.startsWith('data:')
+            ? item.url
+            : null;
+
+      const handleLocalDownload = async () => {
+        if (!downloadableUrl) return;
+
+        try {
+          const response = await fetch(downloadableUrl);
+          const file = await response.blob();
+
+          const extensionMap: Record<string, string> = {
+            'text/html': 'html',
+            'text/plain': 'txt',
+            'application/pdf': 'pdf',
+            'image/png': 'png',
+            'image/jpeg': 'jpg'
+          };
+
+          const mimeType = file.type.split(';')[0];
+
+          const extension =
+            extensionMap[mimeType] || 'bin';
+
+          const filename = String(item.title || 'resource')
+            .replace(/[^a-zA-Z0-9 _-]/g, '_');
+
+          const objectUrl = URL.createObjectURL(file);
+
+          const link = document.createElement('a');
+
+          link.href = objectUrl;
+          link.download = `${filename}.${extension}`;
+
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+
+          setTimeout(
+            () => URL.revokeObjectURL(objectUrl),
+            1000
+          );
+
+        } catch (error) {
+          console.error(error);
+          alert('Unable to download resource.');
+        }
+      };
+
+      return (
+        <article
+          key={item.id}
+          className="detail-summary-card"
+        >
+          <strong>{item.title}</strong>
+          <p>{item.description}</p>
+          <span>{item.audience}</span>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              marginTop: '0.75rem',
+              flexWrap: 'wrap'
+            }}
+          >
+            {itemUrl && (
+              <a
+                href={itemUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button button-secondary button-sm"
+              >
+                {buttonLabel}
+              </a>
+            )}
+
+            {item.fallbackUrl && item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="button button-tertiary button-sm"
+              >
+                Open external
+              </a>
+            )}
+
+            {downloadableUrl && (
+              <button
+                type="button"
+                className="button button-primary button-sm"
+                onClick={handleLocalDownload}
+              >
+                Download in App
+              </button>
+            )}
+          </div>
+        </article>
+      );
+    })}
+  </div>
+);
+
 
   function filterByAudience(items: any[]) {
     if (!audienceFilter || audienceFilter === 'all') return items;
@@ -259,6 +505,104 @@ function CourseDetail() {
             </div>
           </div>
         );
+        
+      case 'shared':
+        return (
+          <div className="detail-panel">
+            <div className="section-header">
+              <h3>Shared Course Resources</h3>
+
+              <span className="panel-pill">
+                {sharedResources.length} resources
+              </span>
+            </div>
+
+            <p>
+              Academic materials shared by students enrolled
+              in this course.
+            </p>
+
+            <Link
+              to="/learning?view=resources"
+              className="button button-primary"
+            >
+              Share Resource
+            </Link>
+
+            {sharedResourceError && (
+              <p className="form-error">{sharedResourceError}</p>
+            )}
+
+            {sharedResources.length === 0 ? (
+              <p>No resources have been shared yet.</p>
+            ) : (
+              <div
+                className="detail-card-grid"
+                style={{ marginTop: 16 }}
+              >
+                {sharedResources.map(resource => (
+                  <article
+                    key={resource.id}
+                    className="detail-summary-card"
+                  >
+                    <span className="detail-chip">
+                      {resource.type}
+                    </span>
+
+                    <h3>{resource.title}</h3>
+                    <p>{resource.description}</p>
+
+                    {resource.createdAt && (
+                      <p>
+                        Shared on{' '}
+                        {new Date(resource.createdAt)
+                          .toLocaleDateString()}
+                      </p>
+                    )}
+
+                    <div className="detail-action-row">
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() =>
+                          handleOpenSharedResource(resource)
+                        }
+                      >
+                        Open
+                      </button>
+
+                      {isPrivateCourseFile(resource) && (
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          onClick={() =>
+                            handleDownloadSharedResource(resource)
+                          }
+                        >
+                          Download
+                        </button>
+                      )}
+
+                      {resource.canDelete && (
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          style={{ color: '#dc2626' }}
+                          onClick={() =>
+                            handleDeleteSharedResource(resource)
+                          }
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
       case 'notes': {
         const items = filterByAudience(resourcesByType.notes);
         return (
@@ -472,6 +816,80 @@ function CourseDetail() {
   return (
     <section className="workspace-page">
       <div className="container workspace-stack">
+
+        {resourcePreview && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Resource preview"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.65)',
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16
+            }}
+          >
+            <div
+              style={{
+                background: '#fff',
+                width: '95%',
+                height: '90vh',
+                borderRadius: 12,
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+            >
+              <div
+                style={{
+                  padding: 16,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  color: '#111827'
+                }}
+              >
+                <h3>{resourcePreview.title}</h3>
+
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => setResourcePreview(null)}
+                >
+                  Close
+                </button>
+              </div>
+
+              {resourcePreview.type.startsWith('image/') ? (
+                <img
+                  src={resourcePreview.url}
+                  alt={resourcePreview.title}
+                  style={{
+                    maxWidth: '100%',
+                    flex: 1,
+                    minHeight: 0,
+                    objectFit: 'contain'
+                  }}
+                />
+              ) : (
+                <iframe
+                  src={resourcePreview.url}
+                  title={resourcePreview.title}
+                  style={{
+                    width: '100%',
+                    flex: 1,
+                    border: 'none'
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
         <section className="hub-hero-card">
           <div>
             <p className="workspace-eyebrow">{course.school}</p>

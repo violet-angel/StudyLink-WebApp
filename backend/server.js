@@ -2182,7 +2182,7 @@ app.post('/api/resources', requireAuth, async (req, res) => {
         );
 
       } else {
-        await query(
+        const notificationResult = await query(
           `INSERT INTO student_notifications (
             user_id,
             kind,
@@ -2195,16 +2195,23 @@ app.post('/api/resources', requireAuth, async (req, res) => {
             'new_resource',
             'New Course Resource',
             $2,
-            '/resources'
+            '/courses/' || ce.course_id::text || '#shared'
           FROM course_enrollments ce
           WHERE ce.course_id = $1
-          AND ce.user_id <> $3`,
+          AND ce.user_id <> $3
+          RETURNING user_id`,
           [
             parsedCourseId,
             `A new resource "${String(title).trim()}" has been shared in your course.`,
             req.user.id
           ]
         );
+
+console.log('COURSE RESOURCE NOTIFICATIONS:', {
+  courseId: parsedCourseId,
+  uploaderId: req.user.id,
+  recipients: notificationResult.rows
+});
       }
     } catch (notificationError) {
       console.error(
