@@ -72,10 +72,7 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
     return r.rows.length?res.json({ok:true}):res.status(404).json({message:'Notification not found.'});
   }));
 
-
-    app.get('/api/group-admin/dashboard', requireAuth, safe(async (req, res) => {
-
-      app.get('/api/admin/dashboard', requireAuth, safe(async (req, res) => {
+     app.get('/api/admin/dashboard', requireAuth, safe(async (req, res) => {
 
         if (req.user.role !== 'admin') {
           return res.status(403).json({
@@ -223,6 +220,9 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
           recentGroups: groups.rows
         });
       }));
+    app.get('/api/group-admin/dashboard', requireAuth, safe(async (req, res) => {
+
+     
 
       const userId = req.user.id;
 
