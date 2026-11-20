@@ -203,17 +203,29 @@ function toSessionSummary(row) {
 
 async function findUserByEmail(email) {
   const result = await query(
-    'SELECT id, email, full_name, university, role, password_hash, major, year_of_study, bio FROM users WHERE lower(email) = lower($1) LIMIT 1;',
+    `SELECT id, email, full_name, university, role,
+            password_hash, major, year_of_study, bio,
+            is_active, suspended_at, suspension_reason
+     FROM users
+     WHERE lower(email) = lower($1)
+     LIMIT 1;`,
     [email],
   );
+
   return result.rows[0] || null;
 }
 
 async function findUserById(id) {
   const result = await query(
-    'SELECT id, email, full_name, university, role, major, year_of_study, bio FROM users WHERE id = $1 LIMIT 1;',
+    `SELECT id, email, full_name, university, role,
+            major, year_of_study, bio,
+            is_active, suspended_at, suspension_reason
+     FROM users
+     WHERE id = $1
+     LIMIT 1;`,
     [id],
   );
+
   return result.rows[0] || null;
 }
 
@@ -222,16 +234,29 @@ async function requireAuth(req, res, next) {
   const payload = verifyAuthToken(token);
 
   if (!payload) {
-    return res.status(401).json({ message: 'Authentication required.' });
+    return res.status(401).json({
+      message: 'Authentication required.'
+    });
   }
 
   const user = await findUserById(Number(payload.sub));
+
   if (!user) {
-    return res.status(401).json({ message: 'Authentication required.' });
+    return res.status(401).json({
+      message: 'Authentication required.'
+    });
+  }
+
+  if (user.is_active === false) {
+    return res.status(403).json({
+      message: 'Your account has been suspended. Contact the system administrator.',
+      code: 'ACCOUNT_SUSPENDED'
+    });
   }
 
   req.user = toPublicUser(user);
   req.auth = payload;
+
   return next();
 }
 
@@ -377,6 +402,12 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ message: 'Invalid email or password.' });
   }
 
+  if (userRecord.is_active === false) {
+    return res.status(403).json({
+      message: 'Your account has been suspended. Contact the system administrator.',
+      code: 'ACCOUNT_SUSPENDED'
+    });
+  }
   const user = toPublicUser(userRecord);
   const token = createAuthToken(user);
   return res.json({ user, token });

@@ -134,7 +134,7 @@ function AdminAcademic() {
       <div className="container workspace-stack">
         <div className="section-block">
           <h2>Academic Admin (seed)</h2>
-          <p className="page-description">Create schools, programs and courses for testing.</p>
+          <p className="page-description">Create schools, programs and courses.</p>
         </div>
 
         <div className="detail-layout">

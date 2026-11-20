@@ -15,7 +15,19 @@ import {
 import { apiFetch } from '../lib/apiClient';
 import '../styles/student-dashboard.css';
 import '../styles/admin-dashboard.css';
-
+type ManagedUser = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  university: string | null;
+  major: string | null;
+  yearOfStudy: string | null;
+  isActive: boolean;
+  suspendedAt: string | null;
+  suspensionReason: string | null;
+  createdAt: string;
+};
 type DashboardData = {
   summary: {
     totalStudents: number;
@@ -60,6 +72,113 @@ export default function SystemAdminDashboard() {
   const [error, setError] = useState('');
   const [tab, setTab] = useState('users');
   const [search, setSearch] = useState('');
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [userError, setUserError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [updatingUser, setUpdatingUser] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+
+
+async function loadUsers() {
+  setUsersLoading(true);
+  setUserError('');
+
+  try {
+    const response = await apiFetch('/api/admin/users');
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.message || 'Unable to retrieve users.'
+      );
+    }
+
+    setUsers(result.users || []);
+
+  } catch (error) {
+    setUserError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to retrieve users.'
+    );
+  } finally {
+    setUsersLoading(false);
+  }
+}
+
+async function changeAccountStatus(user: ManagedUser) {
+  const newStatus = !user.isActive;
+  let reason = '';
+
+  if (!newStatus) {
+    const input = window.prompt(
+      `Enter the reason for suspending ${user.name}:`
+    );
+
+    if (input === null) return;
+
+    reason = input.trim();
+
+    if (!reason || reason.length > 500) {
+      alert('Provide a reason of 1–500 characters.');
+      return;
+    }
+  }
+
+  const confirmed = window.confirm(
+    `${newStatus ? 'Reactivate' : 'Suspend'} ${user.name}'s account?`
+  );
+
+  if (!confirmed) return;
+
+  setUpdatingUser(user.id);
+  setUserError('');
+  setSuccessMessage('');
+
+  try {
+    const response = await apiFetch(
+      `/api/admin/users/${user.id}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          isActive: newStatus,
+          reason
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.message || 'Unable to update account.'
+      );
+    }
+
+    setUsers(previous =>
+      previous.map(item =>
+        String(item.id) === String(user.id)
+          ? { ...item, ...result.user }
+          : item
+      )
+    );
+
+    setSuccessMessage(result.message);
+
+  } catch (error) {
+    setUserError(
+      error instanceof Error
+        ? error.message
+        : 'Account update failed.'
+    );
+  } finally {
+    setUpdatingUser(null);
+  }
+}
 
   async function loadDashboard() {
     setLoading(true);
@@ -90,16 +209,52 @@ export default function SystemAdminDashboard() {
   }
 
   useEffect(() => {
-    void loadDashboard();
-  }, []);
+  void loadDashboard();
+  void loadUsers();
+}, []);
+
+useEffect(() => {
+  setPage(1);
+}, [search, roleFilter, statusFilter]);
 
   const summary = data?.summary;
 
-  const filteredUsers = (data?.recentUsers || []).filter(user =>
-    `${user.name} ${user.email} ${user.role}`
+  
+const filteredUsers = users.filter(user => {
+  const matchesSearch =
+    `${user.name} ${user.email} ${user.role} ${user.major || ''}`
       .toLowerCase()
-      .includes(search.toLowerCase())
-  );
+      .includes(search.trim().toLowerCase());
+
+  const matchesRole =
+    roleFilter === 'all' || user.role === roleFilter;
+
+  const matchesStatus =
+    statusFilter === 'all' ||
+    (statusFilter === 'active' && user.isActive) ||
+    (statusFilter === 'suspended' && !user.isActive);
+
+  return matchesSearch && matchesRole && matchesStatus;
+});
+
+const totalPages = Math.max(
+  1,
+  Math.ceil(filteredUsers.length / pageSize)
+);
+
+const currentPage = Math.min(page, totalPages);
+
+const visibleUsers = filteredUsers.slice(
+  (currentPage - 1) * pageSize,
+  currentPage * pageSize
+);
+
+const activeUsers = users.filter(user => user.isActive).length;
+
+const suspendedUsers = users.filter(
+  user => !user.isActive
+).length;
+
 
   const filteredGroups = (data?.recentGroups || []).filter(group =>
     `${group.name} ${group.courseCode} ${group.owner}`
@@ -344,13 +499,13 @@ export default function SystemAdminDashboard() {
 
                   <strong>
                     {tab === 'users'
-                      ? 'Recently registered users'
+                      ? 'User Management'
                       : 'Recently created groups'}
                   </strong>
 
                   <input
                     type="search"
-                    placeholder={`Search recent ${tab}...`}
+                    placeholder={`Search ${tab === 'users' ? 'all users' : 'recent groups'}...`}
                     aria-label={`Search ${tab}`}
                     value={search}
                     onChange={e => setSearch(e.target.value)}
@@ -361,48 +516,185 @@ export default function SystemAdminDashboard() {
 
               <div className="ad-table-wrapper">
 
-                {tab === 'users' && (
-                  <table className="ad-table">
+                
+{tab === 'users' && (
+  <div className="ad-user-management">
 
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Registered</th>
-                      </tr>
-                    </thead>
+    <div className="ad-user-summary">
+      <span>
+        Total: <strong>{users.length}</strong>
+      </span>
 
-                    <tbody>
-                      {filteredUsers.map(user => (
-                        <tr key={user.id}>
-                          <td>{user.name}</td>
-                          <td>{user.email}</td>
-                          <td>
-                            <span className="ad-role">
-                              {user.role === 'admin'
-                                ? 'Administrator'
-                                : user.role}
-                            </span>
-                          </td>
-                          <td>
-                            {new Date(user.createdAt)
-                              .toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
+      <span className="ad-status-active">
+        Active: <strong>{activeUsers}</strong>
+      </span>
 
-                      {filteredUsers.length === 0 && (
-                        <tr>
-                          <td colSpan={4}>
-                            No matching users.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
+      <span className="ad-status-suspended">
+        Suspended: <strong>{suspendedUsers}</strong>
+      </span>
+    </div>
 
-                  </table>
-                )}
+    <div className="ad-toolbar ad-user-filters">
+      <select
+        aria-label="Filter by role"
+        value={roleFilter}
+        onChange={e => setRoleFilter(e.target.value)}
+      >
+        <option value="all">All roles</option>
+        <option value="student">Students</option>
+        <option value="admin">Administrators</option>
+      </select>
+
+      <select
+        aria-label="Filter by account status"
+        value={statusFilter}
+        onChange={e => setStatusFilter(e.target.value)}
+      >
+        <option value="all">All statuses</option>
+        <option value="active">Active</option>
+        <option value="suspended">Suspended</option>
+      </select>
+
+      <button
+        type="button"
+        className="button button-secondary button-sm"
+        onClick={() => void loadUsers()}
+        disabled={usersLoading}
+      >
+        Refresh Users
+      </button>
+    </div>
+
+    {usersLoading && (
+      <p>Loading registered users...</p>
+    )}
+
+    {userError && (
+      <div className="sd-error" role="alert">
+        {userError}
+      </div>
+    )}
+
+    {successMessage && (
+      <div className="ad-success" role="status">
+        {successMessage}
+      </div>
+    )}
+
+    <table className="ad-table">
+      <thead>
+        <tr>
+          <th>Name / Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Registered</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {visibleUsers.map(user => (
+          <tr key={user.id}>
+            <td>
+              <strong>{user.name}</strong>
+              <small className="ad-user-email">
+                {user.email}
+              </small>
+            </td>
+
+            <td>
+              <span className="ad-role">
+                {user.role === 'admin'
+                  ? 'Administrator'
+                  : 'Student'}
+              </span>
+            </td>
+
+            <td>
+              <span
+                className={
+                  user.isActive
+                    ? 'ad-account-active'
+                    : 'ad-account-suspended'
+                }
+                title={user.suspensionReason || undefined}
+              >
+                {user.isActive ? 'Active' : 'Suspended'}
+              </span>
+            </td>
+
+            <td>
+              {new Date(user.createdAt).toLocaleDateString()}
+            </td>
+
+            <td>
+              {user.role === 'student' ? (
+                <button
+                  type="button"
+                  disabled={updatingUser !== null}
+                  className={
+                    user.isActive
+                      ? 'ad-suspend-button'
+                      : 'ad-reactivate-button'
+                  }
+                  onClick={() =>
+                    void changeAccountStatus(user)
+                  }
+                >
+                  {updatingUser === user.id
+                    ? 'Updating...'
+                    : user.isActive
+                      ? 'Suspend'
+                      : 'Reactivate'}
+                </button>
+              ) : (
+                <span className="ad-protected">
+                  Protected
+                </span>
+              )}
+            </td>
+          </tr>
+        ))}
+
+        {!usersLoading && visibleUsers.length === 0 && (
+          <tr>
+            <td colSpan={5}>No matching users.</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+
+    <div className="ad-pagination">
+      <span>
+        {filteredUsers.length} matching users
+      </span>
+
+      <div>
+        <button
+          type="button"
+          disabled={currentPage <= 1}
+          onClick={() => setPage(currentPage - 1)}
+        >
+          Previous
+        </button>
+
+        <span>
+          {currentPage} / {totalPages}
+        </span>
+
+        <button
+          type="button"
+          disabled={currentPage >= totalPages}
+          onClick={() => setPage(currentPage + 1)}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+
+  </div>
+)}
+
 
                 {tab === 'groups' && (
                   <table className="ad-table">

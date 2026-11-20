@@ -71,155 +71,265 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
       WHERE id=$1 AND user_id=$2 RETURNING id`,[notificationId,req.user.id]);
     return r.rows.length?res.json({ok:true}):res.status(404).json({message:'Notification not found.'});
   }));
-
-     app.get('/api/admin/dashboard', requireAuth, safe(async (req, res) => {
-
-        if (req.user.role !== 'admin') {
-          return res.status(403).json({
-            message: 'System administrator access required.'
-          });
-        }
-
-        const [summary, trends, users, groups] = await Promise.all([
-
-          // Platform-wide statistics
-          query(`
-            SELECT
-              (SELECT COUNT(*) FROM users
-              WHERE role = 'student')::int
-                AS "totalStudents",
-
-              (SELECT COUNT(*) FROM study_groups)::int
-                AS "totalGroups",
-
-              (SELECT COUNT(*) FROM courses)::int
-                AS "totalCourses",
-
-              (SELECT COUNT(*) FROM resources)::int
-                AS "totalResources",
-
-              (SELECT COUNT(*) FROM sessions)::int
-                AS "totalSessions",
-
-              (SELECT COUNT(*) FROM student_messages)::int
-                AS "totalMessages"
-          `),
-
-          // Six-week platform activity trends
-          query(`
-            WITH weeks AS (
-              SELECT
-                idx,
-                date_trunc('week', now())
-                  - idx * interval '1 week' AS week_start
-              FROM generate_series(5, 0, -1) AS idx
-            ),
-            activities AS (
-              SELECT user_id, joined_at AS at
-              FROM group_enrollments
-
-              UNION ALL
-              SELECT user_id, enrolled_at
-              FROM course_enrollments
-
-              UNION ALL
-              SELECT user_id, enrolled_at
-              FROM session_enrollments
-
-              UNION ALL
-              SELECT user_id, accessed_at
-              FROM resource_enrollments
-
-              UNION ALL
-              SELECT sender_user_id, created_at
-              FROM student_messages
-
-              UNION ALL
-              SELECT user_id, updated_at
-              FROM student_session_rsvps
-            )
-            SELECT
-              to_char(w.week_start, 'Mon DD') AS label,
-
-              (SELECT COUNT(*) FROM users u
-              WHERE u.role = 'student'
-              AND u.created_at < w.week_start + interval '1 week'
-              AND u.created_at <= now())::int
-                AS students,
-
-              (SELECT COUNT(DISTINCT a.user_id)
-              FROM activities a
-              JOIN users u ON u.id = a.user_id
-              WHERE u.role = 'student'
-              AND a.at >= w.week_start
-              AND a.at < w.week_start + interval '1 week'
-              AND a.at <= now())::int
-                AS "activeStudents",
-
-              (SELECT COUNT(*) FROM study_groups g
-              WHERE g.created_at >= w.week_start
-              AND g.created_at < w.week_start + interval '1 week'
-              AND g.created_at <= now())::int
-                AS groups,
-
-              (SELECT COUNT(*) FROM resources r
-              WHERE r.created_at >= w.week_start
-              AND r.created_at < w.week_start + interval '1 week'
-              AND r.created_at <= now())::int
-                AS resources,
-
-              (SELECT COUNT(*) FROM student_messages m
-              WHERE m.created_at >= w.week_start
-              AND m.created_at < w.week_start + interval '1 week'
-              AND m.created_at <= now())::int
-                AS messages
-
-            FROM weeks w
-            ORDER BY w.idx DESC
-          `),
-
-          // Recently registered users
-          query(`
-            SELECT
-              id,
-              full_name AS name,
-              email,
-              role,
-              created_at AS "createdAt"
-            FROM users
-            ORDER BY created_at DESC
-            LIMIT 10
-          `),
-
-          // Recently created study groups
-          query(`
-            SELECT
-              g.id,
-              g.name,
-              g.course_code AS "courseCode",
-              u.full_name AS owner,
-
-              (SELECT COUNT(*) FROM group_enrollments ge
-              WHERE ge.group_id = g.id)::int AS members,
-
-              (SELECT COUNT(*) FROM resources r
-              WHERE r.group_id = g.id)::int AS resources
-
-            FROM study_groups g
-            LEFT JOIN users u ON u.id = g.owner_user_id
-            ORDER BY g.created_at DESC
-            LIMIT 10
-          `)
-
-        ]);
-
-        return res.json({
-          summary: summary.rows[0],
-          trends: trends.rows,
-          recentUsers: users.rows,
-          recentGroups: groups.rows
+ 
+    app.get('/api/admin/users', requireAuth, safe(async (req, res) => {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          message: 'Administrator access required.'
         });
-      }));
+      }
+
+      const result = await query(`
+        SELECT
+          id,
+          full_name AS name,
+          email,
+          role,
+          university,
+          major,
+          year_of_study AS "yearOfStudy",
+          is_active AS "isActive",
+          suspended_at AS "suspendedAt",
+          suspension_reason AS "suspensionReason",
+          created_at AS "createdAt"
+        FROM users
+        ORDER BY created_at DESC
+      `);
+
+      return res.json({
+        users: result.rows
+      });
+    }));
+    app.get('/api/admin/dashboard', requireAuth, safe(async (req, res) => {
+
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          message: 'System administrator access required.'
+        });
+      }
+
+      const [summary, trends, users, groups] = await Promise.all([
+
+        // Platform-wide statistics
+        query(`
+          SELECT
+            (SELECT COUNT(*) FROM users
+            WHERE role = 'student')::int
+              AS "totalStudents",
+
+            (SELECT COUNT(*) FROM study_groups)::int
+              AS "totalGroups",
+
+            (SELECT COUNT(*) FROM courses)::int
+              AS "totalCourses",
+
+            (SELECT COUNT(*) FROM resources)::int
+              AS "totalResources",
+
+            (SELECT COUNT(*) FROM sessions)::int
+              AS "totalSessions",
+
+            (SELECT COUNT(*) FROM student_messages)::int
+              AS "totalMessages"
+        `),
+
+        // Six-week platform activity trends
+        query(`
+          WITH weeks AS (
+            SELECT
+              idx,
+              date_trunc('week', now())
+                - idx * interval '1 week' AS week_start
+            FROM generate_series(5, 0, -1) AS idx
+          ),
+          activities AS (
+            SELECT user_id, joined_at AS at
+            FROM group_enrollments
+
+            UNION ALL
+            SELECT user_id, enrolled_at
+            FROM course_enrollments
+
+            UNION ALL
+            SELECT user_id, enrolled_at
+            FROM session_enrollments
+
+            UNION ALL
+            SELECT user_id, accessed_at
+            FROM resource_enrollments
+
+            UNION ALL
+            SELECT sender_user_id, created_at
+            FROM student_messages
+
+            UNION ALL
+            SELECT user_id, updated_at
+            FROM student_session_rsvps
+          )
+          SELECT
+            to_char(w.week_start, 'Mon DD') AS label,
+
+            (SELECT COUNT(*) FROM users u
+            WHERE u.role = 'student'
+            AND u.created_at < w.week_start + interval '1 week'
+            AND u.created_at <= now())::int
+              AS students,
+
+            (SELECT COUNT(DISTINCT a.user_id)
+            FROM activities a
+            JOIN users u ON u.id = a.user_id
+            WHERE u.role = 'student'
+            AND a.at >= w.week_start
+            AND a.at < w.week_start + interval '1 week'
+            AND a.at <= now())::int
+              AS "activeStudents",
+
+            (SELECT COUNT(*) FROM study_groups g
+            WHERE g.created_at >= w.week_start
+            AND g.created_at < w.week_start + interval '1 week'
+            AND g.created_at <= now())::int
+              AS groups,
+
+            (SELECT COUNT(*) FROM resources r
+            WHERE r.created_at >= w.week_start
+            AND r.created_at < w.week_start + interval '1 week'
+            AND r.created_at <= now())::int
+              AS resources,
+
+            (SELECT COUNT(*) FROM student_messages m
+            WHERE m.created_at >= w.week_start
+            AND m.created_at < w.week_start + interval '1 week'
+            AND m.created_at <= now())::int
+              AS messages
+
+          FROM weeks w
+          ORDER BY w.idx DESC
+        `),
+
+        // Recently registered users
+        query(`
+          SELECT
+            id,
+            full_name AS name,
+            email,
+            role,
+            created_at AS "createdAt"
+          FROM users
+          ORDER BY created_at DESC
+          LIMIT 10
+        `),
+
+        // Recently created study groups
+        query(`
+          SELECT
+            g.id,
+            g.name,
+            g.course_code AS "courseCode",
+            u.full_name AS owner,
+
+            (SELECT COUNT(*) FROM group_enrollments ge
+            WHERE ge.group_id = g.id)::int AS members,
+
+            (SELECT COUNT(*) FROM resources r
+            WHERE r.group_id = g.id)::int AS resources
+
+          FROM study_groups g
+          LEFT JOIN users u ON u.id = g.owner_user_id
+          ORDER BY g.created_at DESC
+          LIMIT 10
+        `)
+
+      ]);
+
+      return res.json({
+        summary: summary.rows[0],
+        trends: trends.rows,
+        recentUsers: users.rows,
+        recentGroups: groups.rows
+      });
+    }));
+
+    app.patch('/api/admin/users/:id/status', requireAuth, safe(async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'Administrator access required.'
+    });
+  }
+
+  const userId = req.params.id;
+  const { isActive, reason } = req.body;
+
+  if (!/^[1-9]\d*$/.test(userId)) {
+    return res.status(400).json({
+      message: 'Invalid user ID.'
+    });
+  }
+
+  if (typeof isActive !== 'boolean') {
+    return res.status(400).json({
+      message: 'Invalid account status.'
+    });
+  }
+
+  if (String(userId) === String(req.user.id)) {
+    return res.status(400).json({
+      message: 'You cannot suspend your own account.'
+    });
+  }
+
+  if (!isActive && (
+    typeof reason !== 'string' ||
+    !reason.trim() ||
+    reason.trim().length > 500
+  )) {
+    return res.status(400).json({
+      message: 'Provide a suspension reason of 1–500 characters.'
+    });
+  }
+
+  const result = await query(`
+    UPDATE users
+    SET
+      is_active = $1,
+      suspended_at = CASE
+        WHEN $1 THEN NULL
+        ELSE now()
+      END,
+      suspension_reason = CASE
+        WHEN $1 THEN NULL
+        ELSE $2
+      END,
+      updated_at = now()
+    WHERE id = $3
+      AND role = 'student'
+    RETURNING
+      id,
+      full_name AS name,
+      email,
+      role,
+      is_active AS "isActive",
+      suspended_at AS "suspendedAt",
+      suspension_reason AS "suspensionReason"
+  `, [
+    isActive,
+    isActive ? null : reason.trim(),
+    userId
+  ]);
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Student account not found or protected.'
+    });
+  }
+
+  return res.json({
+    message: isActive
+      ? 'Account reactivated successfully.'
+      : 'Account suspended successfully.',
+    user: result.rows[0]
+  });
+}));
+
     app.get('/api/group-admin/dashboard', requireAuth, safe(async (req, res) => {
 
      
