@@ -68,17 +68,49 @@ function AdminAcademic() {
   }
 
   async function handleAddCourse() {
-    if (!programId || !courseCode || !courseName) return;
-    try {
-      await apiFetch('/api/academic/courses', { method: 'POST', body: JSON.stringify({ programId, code: courseCode, title: courseName, description: 'Overview coming soon' }) });
-      setCourseCode('');
-      setCourseName('');
-      setProgramId('');
-      await refresh();
-    } catch (err) {
-      // noop
-    }
+  if (!programId || !courseCode.trim() || !courseName.trim()) {
+    alert('Select a program and enter the course code and name.');
+    return;
   }
+
+  try {
+    const response = await apiFetch(
+      '/api/academic/courses',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          programId: Number(programId),
+          code: courseCode.trim().toUpperCase(),
+          title: courseName.trim(),
+          description: 'Overview coming soon'
+        })
+      }
+    );
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        result.message || `Course creation failed (${response.status}).`
+      );
+    }
+
+    setCourseCode('');
+    setCourseName('');
+    setProgramId('');
+
+    await refresh();
+
+    alert('Course added successfully.');
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to create course.'
+    );
+  }
+}
 
   async function loadCourseResources(courseId: string) {
     if (!courseId) return setCourseResources([]);
@@ -95,39 +127,144 @@ function AdminAcademic() {
     }
   }
 
-  async function handleAddResource() {
-    if (!selectedCourseId || !resTitle) return;
-    let url = resUrl;
-    if (resFile) {
-      setResUploading(true);
-      try {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = reject;
-          reader.readAsDataURL(resFile as Blob);
-        });
-        const base64 = dataUrl.split(',')[1];
-        const resp = await apiFetch('/api/uploads', { method: 'POST', body: JSON.stringify({ filename: resFile.name, data: base64 }) });
-        const json = await resp.json();
-        url = json.url;
-      } finally {
-        setResUploading(false);
-      }
+async function downloadAcademicResource(resource: any) {
+  try {
+    const response = await apiFetch(
+      `/api/resources/${resource.id}/download`
+    );
+
+    if (!response.ok) {
+      throw new Error('Unable to download resource.');
     }
 
-    if (!url) return;
+    const file = await response.blob();
+    const objectUrl = URL.createObjectURL(file);
 
-    try {
-      await apiFetch(`/api/academic/courses/${selectedCourseId}/resources`, { method: 'POST', body: JSON.stringify({ title: resTitle, url, resourceType: url.endsWith('.pdf') ? 'pdf' : 'link' }) });
-      setResTitle('');
-      setResUrl('');
-      setResFile(null);
-      await loadCourseResources(selectedCourseId);
-    } catch {
-      // noop
-    }
+    const link = document.createElement('a');
+
+    link.href = objectUrl;
+    link.download =
+      new URL(resource.url).pathname.split('/').pop() ||
+      resource.title;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Download failed.'
+    );
   }
+}
+async function handleAddResource() {
+  if (!selectedCourseId || !resTitle.trim()) {
+    alert('Select a course and enter the resource title.');
+    return;
+  }
+
+  if (!resFile && !resUrl.trim()) {
+    alert('Select a file or enter a resource URL.');
+    return;
+  }
+
+  if (resFile && resFile.size > 3 * 1024 * 1024) {
+    alert('The maximum file size is 3 MB.');
+    return;
+  }
+
+  setResUploading(true);
+
+  try {
+    let url = resUrl.trim();
+
+    if (resFile) {
+      const dataUrl = await new Promise<string>(
+        (resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onload = () =>
+            resolve(String(reader.result));
+
+          reader.onerror = reject;
+          reader.readAsDataURL(resFile);
+        }
+      );
+
+      const base64 = dataUrl.split(',')[1];
+
+      const uploadResponse = await apiFetch(
+        '/api/uploads',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            filename: resFile.name,
+            data: base64
+          })
+        }
+      );
+
+      const uploadResult =
+        await uploadResponse.json().catch(() => ({}));
+
+      if (!uploadResponse.ok || !uploadResult.url) {
+        throw new Error(
+          uploadResult.message || 'File upload failed.'
+        );
+      }
+
+      url = uploadResult.url;
+    }
+
+    const resourceType =
+      resFile?.name.toLowerCase().endsWith('.pdf') ||
+      /\.pdf(?:[?#]|$)/i.test(url)
+        ? 'pdf'
+        : 'link';
+
+    const response = await apiFetch(
+      `/api/academic/courses/${selectedCourseId}/resources`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          title: resTitle.trim(),
+          url,
+          resourceType
+        })
+      }
+    );
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        result.message || `Resource creation failed (${response.status}).`
+      );
+    }
+
+    setResTitle('');
+    setResUrl('');
+    setResFile(null);
+
+    await loadCourseResources(selectedCourseId);
+
+    alert('Resource added successfully.');
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to add resource.'
+    );
+  } finally {
+    setResUploading(false);
+  }
+}
+
 
   return (
     <section className="workspace-page">
@@ -197,7 +334,31 @@ function AdminAcademic() {
               <div>
                 <strong>Course resources</strong>
                 <ul>
-                  {courseResources.map((r) => <li key={r.id}><a href={r.url} target="_blank" rel="noreferrer">{r.title}</a></li>)}
+                  {courseResources.map(r => (
+  <li key={r.id} style={{ marginBottom: 8 }}>
+    <strong>{r.title}</strong>
+
+    {r.url.includes('.private.blob.vercel-storage.com/') ? (
+      <button
+        type="button"
+        className="button button-secondary button-sm"
+        style={{ marginLeft: 8 }}
+        onClick={() => void downloadAcademicResource(r)}
+      >
+        Download
+      </button>
+    ) : (
+      <a
+        href={r.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ marginLeft: 8 }}
+      >
+        Open
+      </a>
+    )}
+  </li>
+))}
                 </ul>
               </div>
             </div>

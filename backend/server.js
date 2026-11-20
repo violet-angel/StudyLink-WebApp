@@ -2517,42 +2517,281 @@ app.get('/api/academic/courses/:id', requireAuth, async (req, res) => {
   return res.json({ course: result.rows[0] });
 });
 
+
 app.post('/api/academic/courses', requireAuth, async (req, res) => {
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin permission required.' });
+    return res.status(403).json({
+      message: 'Admin permission required.'
+    });
   }
 
-  const { programId, semesterId, code, title, description } = req.body || {};
-  if (!code || !title) return res.status(400).json({ message: 'Course code and title are required.' });
+  const {
+    programId,
+    semesterId,
+    code,
+    title,
+    description
+  } = req.body || {};
 
-  const result = await query(
-    `INSERT INTO courses (program_id, semester_id, code, title, description, created_by_user_id)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING id, program_id, semester_id, code, title, description;`,
-    [programId ? Number(programId) : null, semesterId ? Number(semesterId) : null, String(code).trim(), String(title).trim(), description ? String(description).trim() : null, req.user.id],
-  );
+  if (
+    !programId ||
+    !String(code || '').trim() ||
+    !String(title || '').trim()
+  ) {
+    return res.status(400).json({
+      message: 'Program, course code and title are required.'
+    });
+  }
 
-  return res.status(201).json({ course: result.rows[0] });
+  try {
+    const programResult = await query(
+      'SELECT id, name FROM programs WHERE id = $1;',
+      [Number(programId)]
+    );
+
+    if (!programResult.rows.length) {
+      return res.status(400).json({
+        message: 'Selected program does not exist.'
+      });
+    }
+
+    const program = programResult.rows[0];
+    const courseCode = String(code).trim().toUpperCase();
+
+    const existing = await query(
+      'SELECT id FROM courses WHERE UPPER(TRIM(code)) = $1 LIMIT 1;',
+      [courseCode]
+    );
+
+    if (existing.rows.length) {
+      return res.status(409).json({
+        message: 'A course with this code already exists.'
+      });
+    }
+
+    const result = await query(`
+      INSERT INTO courses (
+        program_id,
+        semester_id,
+        code,
+        category,
+        title,
+        description,
+        created_by_user_id
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING
+        id,
+        program_id,
+        semester_id,
+        code,
+        category,
+        title,
+        description;
+    `, [
+      Number(programId),
+      semesterId ? Number(semesterId) : null,
+      courseCode,
+      program.name,
+      String(title).trim(),
+      description ? String(description).trim() : null,
+      req.user.id
+    ]);
+
+    return res.status(201).json({
+      course: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('ACADEMIC COURSE CREATION ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to create course. Check the server logs.'
+    });
+  }
 });
+
 
 app.get('/api/academic/courses/:id/resources', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
-  const result = await query('SELECT id, title, url, resource_type FROM course_resources WHERE course_id = $1 ORDER BY created_at DESC;', [id]);
-  return res.json({ resources: result.rows });
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'Admin permission required.'
+    });
+  }
+
+  const courseId = Number(req.params.id);
+
+  if (!Number.isSafeInteger(courseId) || courseId <= 0) {
+    return res.status(400).json({
+      message: 'Invalid course ID.'
+    });
+  }
+
+  try {
+    const result = await query(`
+      SELECT
+        id,
+        course_id,
+        title,
+        url,
+        resource_type,
+        created_at
+      FROM resources
+      WHERE course_id = $1
+      AND group_id IS NULL
+      ORDER BY created_at DESC;
+    `, [courseId]);
+
+    return res.json({
+      resources: result.rows
+    });
+
+  } catch (error) {
+    console.error('ACADEMIC RESOURCE FETCH ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to retrieve resources.'
+    });
+  }
 });
+
 
 app.post('/api/academic/courses/:id/resources', requireAuth, async (req, res) => {
-  const id = Number(req.params.id);
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'Admin permission required.'
+    });
+  }
+
+  const courseId = Number(req.params.id);
+
   const { title, url, resourceType } = req.body || {};
-  if (!title || !url) return res.status(400).json({ message: 'Title and URL are required.' });
 
-  const result = await query(
-    'INSERT INTO course_resources (course_id, title, url, resource_type, created_by_user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id, title, url, resource_type;'
-    , [id, String(title).trim(), String(url).trim(), resourceType ? String(resourceType).trim() : null, req.user.id],
-  );
+  if (
+    !Number.isSafeInteger(courseId) ||
+    courseId <= 0 ||
+    !String(title || '').trim() ||
+    !String(url || '').trim()
+  ) {
+    return res.status(400).json({
+      message: 'Valid course, resource title and URL are required.'
+    });
+  }
 
-  return res.status(201).json({ resource: result.rows[0] });
+  let resourceUrl;
+
+  try {
+    const parsedUrl = new URL(String(url).trim());
+
+    if (!['https:', 'http:'].includes(parsedUrl.protocol)) {
+      throw new Error('Invalid protocol');
+    }
+
+    resourceUrl = parsedUrl.href;
+    if (
+      parsedUrl.hostname.endsWith('.private.blob.vercel-storage.com') &&
+      !parsedUrl.pathname.startsWith(`/resources/${req.user.id}/`)
+    ) {
+      return res.status(403).json({
+        message: 'You cannot attach a private file owned by another user.'
+      });
+    }
+
+  } catch {
+    return res.status(400).json({
+      message: 'Invalid resource URL.'
+    });
+  }
+
+  try {
+    const course = await query(
+      'SELECT id, title FROM courses WHERE id = $1;',
+      [courseId]
+    );
+
+    if (!course.rows.length) {
+      return res.status(404).json({
+        message: 'Course not found.'
+      });
+    }
+
+    const result = await query(`
+      INSERT INTO resources (
+        course_id,
+        group_id,
+        title,
+        url,
+        resource_type,
+        description,
+        audience,
+        created_by_user_id
+      )
+      VALUES ($1, NULL, $2, $3, $4, $5, $6, $7)
+      RETURNING
+        id,
+        course_id,
+        title,
+        url,
+        resource_type;
+    `, [
+      courseId,
+      String(title).trim(),
+      resourceUrl,
+      String(resourceType || 'link').toLowerCase() === 'pdf'
+        ? 'PDF'
+        : 'Link',
+      'Academic resource provided by the system administrator.',
+      'All enrolled students',
+      req.user.id
+    ]);
+
+    // Notify enrolled students
+    try {
+      await query(`
+        INSERT INTO student_notifications (
+          user_id,
+          kind,
+          title,
+          body,
+          href
+        )
+        SELECT DISTINCT
+          ce.user_id,
+          'new_resource',
+          'New Academic Resource',
+          $2,
+          '/courses/' || ce.course_id::text || '#shared'
+        FROM course_enrollments ce
+        WHERE ce.course_id = $1
+        AND ce.user_id <> $3;
+      `, [
+        courseId,
+        `The system administrator has shared "${String(title).trim()}" in your course.`,
+        req.user.id
+      ]);
+
+    } catch (notificationError) {
+      console.error(
+        'ACADEMIC RESOURCE NOTIFICATION ERROR:',
+        notificationError
+      );
+    }
+
+    return res.status(201).json({
+      resource: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('ACADEMIC RESOURCE CREATION ERROR:', error);
+
+    return res.status(500).json({
+      message: 'Unable to create academic resource.'
+    });
+  }
 });
+
 
 registerStudentFeatures({ app, requireAuth, query });
 
