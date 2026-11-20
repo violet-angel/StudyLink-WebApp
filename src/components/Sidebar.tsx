@@ -16,6 +16,38 @@ const mainNavItems = [
   { label: 'Dashboard', path: '/dashboard', icon: '\u25EB' },
 ];
 
+const systemAdminNavItems = [
+  {
+    label: 'Admin Dashboard',
+    path: '/admin',
+    icon: '\u25EB'
+  },
+  {
+    label: 'Academic Management',
+    path: '/admin/academic',
+    icon: '\u2699'
+  },
+  {
+    label: 'Courses',
+    path: '/courses',
+    icon: '\u{1F4D8}'
+  },
+  {
+    label: 'Study Groups',
+    path: '/groups',
+    icon: '\u{1F465}'
+  },
+  {
+    label: 'Resources',
+    path: '/resources',
+    icon: '\u{1F4DA}'
+  },
+  {
+    label: 'Study Sessions',
+    path: '/sessions',
+    icon: '\u{1F5D3}'
+  }
+];
 type SidebarProps = {
   onNavigate?: () => void;
 };
@@ -23,7 +55,14 @@ type SidebarProps = {
 function Sidebar({ onNavigate }: SidebarProps) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+
   const currentUser = getStoredUser();
+
+const isSystemAdmin = currentUser?.role === 'admin';
+
+const navigationItems = isSystemAdmin
+  ? systemAdminNavItems
+  : mainNavItems;
 
   const [isGroupAdmin, setIsGroupAdmin] = useState(false);
 
@@ -63,7 +102,11 @@ function Sidebar({ onNavigate }: SidebarProps) {
             <img src={logo} alt="StudyLink logo" className="brand-image sidebar-brand-image" />
             <div className="sidebar-brand-copy">
               <span className="brand-text">StudyLink</span>
-              <span className="sidebar-brand-subtitle">Student workspace</span>
+              <span className="sidebar-brand-subtitle">
+                {isSystemAdmin
+                  ? 'System Administration'
+                  : 'Student workspace'}
+              </span>
             </div>
           </Link>
         </div>
@@ -80,10 +123,11 @@ function Sidebar({ onNavigate }: SidebarProps) {
 
       <nav className="sidebar-nav">
         <p className="sidebar-section-label">Workspace</p>
-        {mainNavItems.map((item) => (
+        {navigationItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
+            end={item.path === '/admin'}
             className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
             title={collapsed ? item.label : undefined}
             onClick={onNavigate}
@@ -93,7 +137,7 @@ function Sidebar({ onNavigate }: SidebarProps) {
           </NavLink>
         ))}
 
-        {isGroupAdmin && (
+        {!isSystemAdmin && isGroupAdmin && (
           <NavLink
             to="/group-admin"
             className={({ isActive }) =>
@@ -108,17 +152,7 @@ function Sidebar({ onNavigate }: SidebarProps) {
             <span className="nav-label">Group Admin Dashboard</span>
           </NavLink>
         )}
-        {currentUser?.role === 'admin' ? (
-          <NavLink
-            to="/admin/academic"
-            className={({ isActive }) => (isActive ? 'sidebar-link active' : 'sidebar-link')}
-            title={collapsed ? 'Academic Admin' : undefined}
-            onClick={onNavigate}
-          >
-            <span className="sidebar-link-icon" aria-hidden="true">{'\u2699'}</span>
-            <span className="nav-label">Academic Admin</span>
-          </NavLink>
-        ) : null}
+        
       </nav>
 
       <div className="sidebar-footer">

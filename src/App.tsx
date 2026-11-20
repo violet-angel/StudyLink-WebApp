@@ -7,6 +7,7 @@ import SignUp from './pages/SignUp';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import GroupAdminDashboard from './pages/GroupAdminDashboard';
+import SystemAdminDashboard from './pages/SystemAdminDashboard';
 import DiscoverClassmates from './pages/DiscoverClassmates';
 import GroupChat from './pages/GroupChat';
 import Courses from './pages/Courses';
@@ -35,6 +36,20 @@ type ProtectedRouteProps = {
 
 function ProtectedRoute({ children }: ProtectedRouteProps) {
   return getStoredUser() ? <>{children}</> : <Navigate to="/login" replace />;
+}
+
+function AdminRoute({ children }: ProtectedRouteProps) {
+  const user = getStoredUser();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 function getMobilePageTitle(pathname: string) {
@@ -87,6 +102,10 @@ function App() {
   ];
   const showDesktopSidebar = isAuthenticated && !isMobile && isDesktopSidebarVisible;
   const currentUser = getStoredUser();
+  const defaultDashboard =
+    currentUser?.role === 'admin'
+      ? '/admin'
+      : '/dashboard';
 
   return (
     <div className={`app-shell ${isAuthenticated ? 'authenticated-shell' : 'public-shell'}`}>
@@ -136,16 +155,24 @@ function App() {
           </button>
         ) : null}
         <Routes>
-          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Home />} />
+          <Route path="/" element={isAuthenticated ? <Navigate to={defaultDashboard} replace /> : <Home />} />
 
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onAuthSuccess={() => setIsAuthenticated(true)} />} />
-          <Route path="/signup" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <SignUp onAuthSuccess={() => setIsAuthenticated(true)} />} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to={defaultDashboard} replace /> : <Login onAuthSuccess={() => setIsAuthenticated(true)} />} />
+          <Route path="/signup" element={isAuthenticated ? <Navigate to={defaultDashboard} replace /> : <SignUp onAuthSuccess={() => setIsAuthenticated(true)} />} />
 
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
 
           <Route path="/groups/:id/chat" element={<ProtectedRoute><GroupChat /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <SystemAdminDashboard />
+              </AdminRoute>
+            }
+          />
           <Route
             path="/group-admin"
             element={
@@ -161,7 +188,14 @@ function App() {
           <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
           <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
           <Route path="/ask-ai" element={<ProtectedRoute><StudyLinkAI /></ProtectedRoute>} />
-          <Route path="/admin/academic" element={<ProtectedRoute><AdminAcademic /></ProtectedRoute>} />
+          <Route
+            path="/admin/academic"
+            element={
+              <AdminRoute>
+                <AdminAcademic />
+              </AdminRoute>
+            }
+          />
           <Route path="/groups" element={<ProtectedRoute><StudyGroups /></ProtectedRoute>} />
           <Route path="/groups/new" element={<ProtectedRoute><StudyGroups initialShowForm /></ProtectedRoute>} />
           <Route path="/groups/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />

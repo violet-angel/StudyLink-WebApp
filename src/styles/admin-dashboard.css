@@ -129,3 +129,52 @@
     min-width: 580px;
   }
 }
+
+
+/* System administrator management workspace */
+
+.ad-search-toolbar {
+  justify-content: space-between;
+  margin: 8px 0;
+}
+
+.ad-search-toolbar input {
+  width: 220px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+}
+
+.ad-role {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.ad-management-links {
+  padding: 10px 4px;
+}
+
+.ad-management-links h3 {
+  font-size: 15px;
+  margin: 0 0 6px;
+}
+
+.ad-management-links .button {
+  margin: 6px 8px 0 0;
+}
+
+@media (max-width: 760px) {
+  .ad-search-toolbar input {
+    width: 100%;
+  }
+}

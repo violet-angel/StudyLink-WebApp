@@ -74,6 +74,156 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
 
 
     app.get('/api/group-admin/dashboard', requireAuth, safe(async (req, res) => {
+
+      app.get('/api/admin/dashboard', requireAuth, safe(async (req, res) => {
+
+        if (req.user.role !== 'admin') {
+          return res.status(403).json({
+            message: 'System administrator access required.'
+          });
+        }
+
+        const [summary, trends, users, groups] = await Promise.all([
+
+          // Platform-wide statistics
+          query(`
+            SELECT
+              (SELECT COUNT(*) FROM users
+              WHERE role = 'student')::int
+                AS "totalStudents",
+
+              (SELECT COUNT(*) FROM study_groups)::int
+                AS "totalGroups",
+
+              (SELECT COUNT(*) FROM courses)::int
+                AS "totalCourses",
+
+              (SELECT COUNT(*) FROM resources)::int
+                AS "totalResources",
+
+              (SELECT COUNT(*) FROM sessions)::int
+                AS "totalSessions",
+
+              (SELECT COUNT(*) FROM student_messages)::int
+                AS "totalMessages"
+          `),
+
+          // Six-week platform activity trends
+          query(`
+            WITH weeks AS (
+              SELECT
+                idx,
+                date_trunc('week', now())
+                  - idx * interval '1 week' AS week_start
+              FROM generate_series(5, 0, -1) AS idx
+            ),
+            activities AS (
+              SELECT user_id, joined_at AS at
+              FROM group_enrollments
+
+              UNION ALL
+              SELECT user_id, enrolled_at
+              FROM course_enrollments
+
+              UNION ALL
+              SELECT user_id, enrolled_at
+              FROM session_enrollments
+
+              UNION ALL
+              SELECT user_id, accessed_at
+              FROM resource_enrollments
+
+              UNION ALL
+              SELECT sender_user_id, created_at
+              FROM student_messages
+
+              UNION ALL
+              SELECT user_id, updated_at
+              FROM student_session_rsvps
+            )
+            SELECT
+              to_char(w.week_start, 'Mon DD') AS label,
+
+              (SELECT COUNT(*) FROM users u
+              WHERE u.role = 'student'
+              AND u.created_at < w.week_start + interval '1 week'
+              AND u.created_at <= now())::int
+                AS students,
+
+              (SELECT COUNT(DISTINCT a.user_id)
+              FROM activities a
+              JOIN users u ON u.id = a.user_id
+              WHERE u.role = 'student'
+              AND a.at >= w.week_start
+              AND a.at < w.week_start + interval '1 week'
+              AND a.at <= now())::int
+                AS "activeStudents",
+
+              (SELECT COUNT(*) FROM study_groups g
+              WHERE g.created_at >= w.week_start
+              AND g.created_at < w.week_start + interval '1 week'
+              AND g.created_at <= now())::int
+                AS groups,
+
+              (SELECT COUNT(*) FROM resources r
+              WHERE r.created_at >= w.week_start
+              AND r.created_at < w.week_start + interval '1 week'
+              AND r.created_at <= now())::int
+                AS resources,
+
+              (SELECT COUNT(*) FROM student_messages m
+              WHERE m.created_at >= w.week_start
+              AND m.created_at < w.week_start + interval '1 week'
+              AND m.created_at <= now())::int
+                AS messages
+
+            FROM weeks w
+            ORDER BY w.idx DESC
+          `),
+
+          // Recently registered users
+          query(`
+            SELECT
+              id,
+              full_name AS name,
+              email,
+              role,
+              created_at AS "createdAt"
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT 10
+          `),
+
+          // Recently created study groups
+          query(`
+            SELECT
+              g.id,
+              g.name,
+              g.course_code AS "courseCode",
+              u.full_name AS owner,
+
+              (SELECT COUNT(*) FROM group_enrollments ge
+              WHERE ge.group_id = g.id)::int AS members,
+
+              (SELECT COUNT(*) FROM resources r
+              WHERE r.group_id = g.id)::int AS resources
+
+            FROM study_groups g
+            LEFT JOIN users u ON u.id = g.owner_user_id
+            ORDER BY g.created_at DESC
+            LIMIT 10
+          `)
+
+        ]);
+
+        return res.json({
+          summary: summary.rows[0],
+          trends: trends.rows,
+          recentUsers: users.rows,
+          recentGroups: groups.rows
+        });
+      }));
+
       const userId = req.user.id;
 
       const groups = await query(`
