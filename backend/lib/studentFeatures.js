@@ -72,6 +72,185 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
     return r.rows.length?res.json({ok:true}):res.status(404).json({message:'Notification not found.'});
   }));
 
+
+    app.get('/api/group-admin/dashboard', requireAuth, safe(async (req, res) => {
+      const userId = req.user.id;
+
+      const groups = await query(`
+        SELECT id, name, course_code AS "courseCode"
+        FROM study_groups
+        WHERE owner_user_id = $1
+        ORDER BY name
+      `, [userId]);
+
+      if (groups.rows.length === 0) {
+        return res.status(403).json({
+          message: 'You do not administer any study groups.'
+        });
+      }
+
+      const selectedGroupId = req.query.groupId || null;
+
+      if (
+        selectedGroupId &&
+        !groups.rows.some(
+          group => String(group.id) === String(selectedGroupId)
+        )
+      ) {
+        return res.status(403).json({
+          message: 'You are not authorised to manage this group.'
+        });
+      }
+
+      const [summary, trends, managedGroups, upcoming] =
+        await Promise.all([
+
+          // Dashboard summary cards
+          query(`
+            WITH owned AS (
+              SELECT id FROM study_groups
+              WHERE owner_user_id = $1
+              AND ($2::bigint IS NULL OR id = $2)
+            )
+            SELECT
+              (SELECT COUNT(*) FROM owned)::int
+                AS "totalGroups",
+
+              (SELECT COUNT(DISTINCT user_id)
+              FROM group_enrollments
+              WHERE group_id IN (SELECT id FROM owned))::int
+                AS "totalMembers",
+
+              (SELECT COUNT(DISTINCT sender_user_id)
+              FROM student_messages
+              WHERE group_id IN (SELECT id FROM owned)
+              AND created_at >= now() - interval '7 days')::int
+                AS "activeMembers",
+
+              (SELECT COUNT(*) FROM sessions
+              WHERE group_id IN (SELECT id FROM owned)
+              AND starts_at >= now())::int
+                AS "upcomingSessions",
+
+              (SELECT COUNT(*) FROM resources
+              WHERE group_id IN (SELECT id FROM owned))::int
+                AS "totalResources",
+
+              (SELECT COUNT(*) FROM student_messages
+              WHERE group_id IN (SELECT id FROM owned))::int
+                AS "totalMessages"
+          `, [userId, selectedGroupId]),
+
+          // Six-week line graph statistics
+          query(`
+            WITH owned AS (
+              SELECT id FROM study_groups
+              WHERE owner_user_id = $1
+              AND ($2::bigint IS NULL OR id = $2)
+            ),
+            weeks AS (
+              SELECT
+                idx,
+                date_trunc('week', now())
+                  - idx * interval '1 week' AS week_start
+              FROM generate_series(5, 0, -1) AS idx
+            )
+            SELECT
+              to_char(w.week_start, 'Mon DD') AS label,
+
+              (SELECT COUNT(DISTINCT ge.user_id)
+              FROM group_enrollments ge
+              WHERE ge.group_id IN (SELECT id FROM owned)
+              AND ge.joined_at < w.week_start + interval '1 week'
+              AND ge.joined_at <= now())::int
+                AS members,
+
+              (SELECT COUNT(DISTINCT sm.sender_user_id)
+              FROM student_messages sm
+              WHERE sm.group_id IN (SELECT id FROM owned)
+              AND sm.created_at >= w.week_start
+              AND sm.created_at < w.week_start + interval '1 week'
+              AND sm.created_at <= now())::int
+                AS "activeMembers",
+
+              (SELECT COUNT(*) FROM student_messages sm
+              WHERE sm.group_id IN (SELECT id FROM owned)
+              AND sm.created_at >= w.week_start
+              AND sm.created_at < w.week_start + interval '1 week'
+              AND sm.created_at <= now())::int
+                AS messages,
+
+              (SELECT COUNT(*) FROM resources r
+              WHERE r.group_id IN (SELECT id FROM owned)
+              AND r.created_at >= w.week_start
+              AND r.created_at < w.week_start + interval '1 week'
+              AND r.created_at <= now())::int
+                AS resources,
+
+              (SELECT COUNT(*) FROM sessions s
+              WHERE s.group_id IN (SELECT id FROM owned)
+              AND s.starts_at >= w.week_start
+              AND s.starts_at < w.week_start + interval '1 week'
+              AND s.starts_at <= now())::int
+                AS sessions
+
+            FROM weeks w
+            ORDER BY w.idx DESC
+          `, [userId, selectedGroupId]),
+
+          // Groups managed by this administrator
+          query(`
+            SELECT
+              g.id,
+              g.name,
+              g.course_code AS "courseCode",
+
+              (SELECT COUNT(*) FROM group_enrollments ge
+              WHERE ge.group_id = g.id)::int AS members,
+
+              (SELECT COUNT(*) FROM resources r
+              WHERE r.group_id = g.id)::int AS resources,
+
+              (SELECT COUNT(*) FROM sessions s
+              WHERE s.group_id = g.id
+              AND s.starts_at >= now())::int
+                AS "upcomingSessions"
+
+            FROM study_groups g
+            WHERE g.owner_user_id = $1
+            AND ($2::bigint IS NULL OR g.id = $2)
+            ORDER BY g.name
+          `, [userId, selectedGroupId]),
+
+          // Upcoming group sessions
+          query(`
+            SELECT
+              s.id,
+              s.title,
+              s.starts_at AS "startsAt",
+              g.id AS "groupId",
+              g.name AS "groupName"
+            FROM sessions s
+            JOIN study_groups g ON g.id = s.group_id
+            WHERE g.owner_user_id = $1
+            AND ($2::bigint IS NULL OR g.id = $2)
+            AND s.starts_at >= now()
+            ORDER BY s.starts_at
+            LIMIT 5
+          `, [userId, selectedGroupId])
+
+        ]);
+
+      return res.json({
+        groups: groups.rows,
+        summary: summary.rows[0],
+        trends: trends.rows,
+        managedGroups: managedGroups.rows,
+        upcomingSessions: upcoming.rows
+      });
+    }));
+
+
   app.get('/api/student/dashboard', requireAuth, safe(async (req,res) => {
     const userId=req.user.id;
     // Uses actual event timestamps: joining a group, registering for a session,
@@ -94,7 +273,7 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
     )
     SELECT (SELECT points FROM totals WHERE user_id=$1) AS "yourPoints",
       (SELECT count(*)::int FROM totals) AS "peerCount",
-      (SELECT round(avg(points)::numeric,1) FROM totals) AS "peerAverage",
+      (SELECT round(avg(points)::numeric,1) FROM totals WHERE user_id<>$1) AS "peerAverage",
       (SELECT count(*)::int FROM activities WHERE user_id=$1 AND occurred_at>=now()-interval '7 days') AS "yourActions",
       (SELECT count(*)::int FROM group_enrollments WHERE user_id=$1) AS "myGroups",
       (SELECT count(*)::int FROM session_enrollments WHERE user_id=$1) AS "mySessionRegistrations",
@@ -102,17 +281,87 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
       (SELECT count(*)::int FROM student_messages WHERE sender_user_id=$1) AS "myMessages"`;
     const [summary,weeks,upcoming] = await Promise.all([
       query(sql,[userId]),
-      query(`WITH weeks AS (SELECT generate_series(3,0,-1) AS idx), activities AS (
-        SELECT user_id,joined_at AS at,1 AS points FROM group_enrollments
-        UNION ALL SELECT user_id,enrolled_at,2 FROM session_enrollments
-        UNION ALL SELECT user_id,accessed_at,1 FROM resource_enrollments
-        UNION ALL SELECT sender_user_id,created_at,3 FROM student_messages
-        UNION ALL SELECT user_id,updated_at,2 FROM student_session_rsvps
-      ) SELECT to_char(date_trunc('week',now())-(idx*interval '1 week'),'Mon DD') AS label,
-        coalesce(sum(points),0)::int AS points FROM weeks LEFT JOIN activities a
-        ON a.user_id=$1 AND a.at>=date_trunc('week',now())-(idx*interval '1 week')
-        AND a.at<date_trunc('week',now())-((idx-1)*interval '1 week')
-        GROUP BY idx ORDER BY idx DESC`,[userId]),
+      
+      query(`
+        WITH weeks AS (
+          SELECT generate_series(5,0,-1) AS idx
+        ),
+        activities AS (
+          SELECT user_id, joined_at AS at, 1 AS points
+          FROM group_enrollments
+
+          UNION ALL
+          SELECT user_id, enrolled_at, 2
+          FROM session_enrollments
+
+          UNION ALL
+          SELECT user_id, accessed_at, 1
+          FROM resource_enrollments
+
+          UNION ALL
+          SELECT sender_user_id, created_at, 3
+          FROM student_messages
+
+          UNION ALL
+          SELECT user_id, updated_at, 2
+          FROM student_session_rsvps
+        ),
+        peers AS (
+          SELECT DISTINCT ge2.user_id
+          FROM group_enrollments ge1
+          JOIN group_enrollments ge2
+            ON ge2.group_id = ge1.group_id
+          WHERE ge1.user_id = $1
+            AND ge2.user_id <> $1
+        ),
+        weekly_totals AS (
+          SELECT
+            w.idx,
+            a.user_id,
+            SUM(a.points) AS points
+          FROM weeks w
+          JOIN activities a
+            ON a.at >= date_trunc('week', now())
+              - (w.idx * interval '1 week')
+            AND a.at < date_trunc('week', now())
+              - ((w.idx - 1) * interval '1 week')
+            AND a.at <= now()
+          WHERE a.user_id = $1
+            OR a.user_id IN (SELECT user_id FROM peers)
+          GROUP BY w.idx, a.user_id
+        )
+        SELECT
+          to_char(
+            date_trunc('week', now())
+            - (w.idx * interval '1 week'),
+            'Mon DD'
+          ) AS label,
+
+          COALESCE((
+            SELECT wt.points
+            FROM weekly_totals wt
+            WHERE wt.idx = w.idx
+              AND wt.user_id = $1
+          ), 0)::int AS points,
+
+          CASE
+            WHEN (SELECT COUNT(*) FROM peers) >= 4
+            THEN (
+              SELECT ROUND(
+                AVG(COALESCE(wt.points, 0))::numeric, 1
+              )
+              FROM peers p
+              LEFT JOIN weekly_totals wt
+                ON wt.user_id = p.user_id
+                AND wt.idx = w.idx
+            )
+            ELSE NULL
+          END AS "peerAverage"
+
+        FROM weeks w
+        ORDER BY w.idx DESC
+      `, [userId]),
+
       query(`SELECT s.id,s.title,s.starts_at AS "startsAt",g.name AS "groupName",g.id AS "groupId",
            r.status AS "myRsvp" FROM sessions s JOIN study_groups g ON g.id=s.group_id
            JOIN group_enrollments ge ON ge.group_id=g.id AND ge.user_id=$1

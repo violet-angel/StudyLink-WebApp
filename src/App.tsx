@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
+import GroupAdminDashboard from './pages/GroupAdminDashboard';
 import DiscoverClassmates from './pages/DiscoverClassmates';
 import GroupChat from './pages/GroupChat';
 import Courses from './pages/Courses';
@@ -145,7 +146,14 @@ function App() {
 
           <Route path="/groups/:id/chat" element={<ProtectedRoute><GroupChat /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-
+          <Route
+            path="/group-admin"
+            element={
+              <ProtectedRoute>
+                <GroupAdminDashboard />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/discover-classmates" element={ <ProtectedRoute> <DiscoverClassmates /></ProtectedRoute> }/>
           
           <Route path="/messages/:studentId" element={<ProtectedRoute>< DirectMessages /></ProtectedRoute>}/>

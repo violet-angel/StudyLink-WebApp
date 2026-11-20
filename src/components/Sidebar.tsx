@@ -1,5 +1,6 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { apiFetch } from '../lib/apiClient';
 import logo from '../assets/images/studylinklogo.png';
 import NotificationBell from './NotificationBell';
 import { clearStoredAuth, getStoredUser } from '../lib/session';
@@ -23,6 +24,31 @@ function Sidebar({ onNavigate }: SidebarProps) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const currentUser = getStoredUser();
+
+  const [isGroupAdmin, setIsGroupAdmin] = useState(false);
+
+    useEffect(() => {
+      let active = true;
+
+      apiFetch('/api/groups')
+        .then(response => response.ok ? response.json() : null)
+        .then(data => {
+          if (active) {
+            setIsGroupAdmin(
+              (data?.groups || []).some(
+                (group: { isOwner?: boolean }) => group.isOwner === true
+              )
+            );
+          }
+        })
+        .catch(() => {
+          if (active) setIsGroupAdmin(false);
+        });
+
+      return () => {
+        active = false;
+      };
+    }, [currentUser?.id]);
 
   const handleLogout = () => {
     clearStoredAuth();
@@ -66,6 +92,22 @@ function Sidebar({ onNavigate }: SidebarProps) {
             <span className="nav-label">{item.label}</span>
           </NavLink>
         ))}
+
+        {isGroupAdmin && (
+          <NavLink
+            to="/group-admin"
+            className={({ isActive }) =>
+              isActive ? 'sidebar-link active' : 'sidebar-link'
+            }
+            title={collapsed ? 'Group Admin Dashboard' : undefined}
+            onClick={onNavigate}
+          >
+            <span className="sidebar-link-icon" aria-hidden="true">
+              {'\u2699'}
+            </span>
+            <span className="nav-label">Group Admin Dashboard</span>
+          </NavLink>
+        )}
         {currentUser?.role === 'admin' ? (
           <NavLink
             to="/admin/academic"

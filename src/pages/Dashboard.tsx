@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
 import { apiFetch } from '../lib/apiClient';
 import { getStoredUser } from '../lib/session';
 import '../styles/student-dashboard.css';
@@ -9,7 +19,11 @@ type Summary = {
   yourActions: number; myGroups: number; mySessionRegistrations: number;
   mySavedResources: number; myMessages: number;
 };
-type Week = { label: string; points: number };
+  type Week = {
+    label: string;
+    points: number;
+    peerAverage: number | null;
+  };
 type Session = {id:number;title:string;startsAt:string;groupName:string;groupId:number;myRsvp:string|null};
 type DashboardData = {
   summary: Summary; weeks: Week[]; upcomingSessions: Session[];
@@ -64,11 +78,20 @@ export default function Dashboard(){
     }catch{setError('Could not mark notification as read.');}
   };
   const sum=data?.summary;
-  const weeks=data?.weeks||[];
-  const maxPoints=Math.max(1,...weeks.map(w=>Number(w.points)));
+  const weeks = (data?.weeks || []).map(week => ({
+    ...week,
+    points: Number(week.points || 0),
+    peerAverage:
+      week.peerAverage == null
+        ? null
+        : Number(week.peerAverage)
+  }));
   const average=sum?.peerAverage==null?null:Number(sum.peerAverage);
   const score=Number(sum?.yourPoints||0);
-  const relative=average===null?null:(average===0?(score>0?100:0):Math.round(((score-average)/average)*100));
+  const relative =
+  average === null || average === 0
+    ? null
+    : Math.round(((score - average) / average) * 100);
 
   return <section className="student-dashboard workspace-page">
     <div className="container student-dashboard-stack">
@@ -102,12 +125,75 @@ export default function Dashboard(){
             <span>{label}</span><strong>{displayNumber(Number(value))}</strong></Link>)}
         </div>
         <div className="sd-panels">
-          <section className="sd-panel"><h2>My participation trend</h2><p>Earn points by collaborating; shown by week.</p>
-            <div className="sd-chart" role="img" aria-label={`Weekly participation: ${weeks.map(w=>`${w.label}: ${w.points} points`).join(', ')}`}>
-              {weeks.map(w=><div className="sd-chart-col" key={w.label}>
-                <b>{w.points}</b><div className="sd-chart-track"><div className="sd-chart-bar" style={{height:`${Math.max(0,Number(w.points)/maxPoints*100)}%`}} /></div>
-                <small>{w.label}</small></div>)}
-            </div>
+          <section className="sd-panel"><h2>Participation and peer comparison</h2><p>Your participation compared with classmates over six weeks.</p>
+            
+<div className="sd-line-chart">
+  {weeks.length > 0 ? (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart
+        data={weeks}
+        margin={{ top: 10, right: 12, left: -15, bottom: 0 }}
+      >
+        <CartesianGrid
+          strokeDasharray="3 3"
+          vertical={false}
+          stroke="#e2e8f0"
+        />
+
+        <XAxis
+          dataKey="label"
+          tick={{ fontSize: 11, fill: '#64748b' }}
+          axisLine={false}
+          tickLine={false}
+        />
+
+        <YAxis
+          tick={{ fontSize: 11, fill: '#64748b' }}
+          axisLine={false}
+          tickLine={false}
+          allowDecimals={false}
+          domain={[0, 'auto']}
+        />
+
+        <Tooltip
+          contentStyle={{
+            borderRadius: 8,
+            border: '1px solid #e2e8f0',
+            fontSize: 12
+          }}
+        />
+
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+
+        <Line
+          type="monotone"
+          dataKey="points"
+          name="My participation"
+          stroke="#2563eb"
+          strokeWidth={3}
+          dot={{ r: 3 }}
+          activeDot={{ r: 6 }}
+        />
+        {weeks.some(week => week.peerAverage != null) && (
+        <Line
+          type="monotone"
+          dataKey="peerAverage"
+          name="Peer average"
+          stroke="#10b981"
+          strokeWidth={2.5}
+          strokeDasharray="5 3"
+          dot={{ r: 3 }}
+          activeDot={{ r: 6 }}
+          connectNulls={false}
+        />
+      )}
+      </LineChart>
+    </ResponsiveContainer>
+  ) : (
+    <p>No participation data available yet.</p>
+  )}
+</div>
+
           </section>
           <section className="sd-panel"><h2>How active am I?</h2>
             <p>7-day points compared with students sharing at least one study group with you.</p>
@@ -120,7 +206,7 @@ export default function Dashboard(){
         </div>
         <div className="sd-panels">
           <section className="sd-panel"><div className="sd-heading"><h2>Upcoming study sessions</h2><Link to="/sessions">All sessions</Link></div>
-            {data?.upcomingSessions.length?data.upcomingSessions.map(session=><div className="sd-list-item" key={session.id}>
+            {data?.upcomingSessions.length?data.upcomingSessions.slice(0,3).map(session=><div className="sd-list-item" key={session.id}>
               <div><strong>{session.title}</strong><p>{session.groupName} · {new Date(session.startsAt).toLocaleString()}</p></div>
               <label>My RSVP <select aria-label={`RSVP to ${session.title}`} disabled={saving===session.id} value={session.myRsvp||''} onChange={e=>void rsvp(session.id,e.target.value)}>
                 <option value="" disabled>Choose</option><option value="attending">Attending</option><option value="maybe">Maybe</option><option value="not_attending">Not attending</option>
@@ -128,7 +214,7 @@ export default function Dashboard(){
             </div>):<p>No upcoming sessions in your joined groups. <Link to="/groups">Browse groups</Link>.</p>}
           </section>
           <section className="sd-panel"><div className="sd-heading"><h2>Notifications</h2><span>{notices.filter(n=>!n.readAt).length} unread</span></div>
-            {notices.length?notices.slice(0,8).map(notice=><div key={notice.id} className={`sd-list-item ${!notice.readAt?'sd-unread':''}`}>
+            {notices.length?notices.slice(0,3).map(notice=><div key={notice.id} className={`sd-list-item ${!notice.readAt?'sd-unread':''}`}>
               <div><Link to={notice.href} onClick={()=>void markRead(notice)}><strong>{notice.title}</strong></Link>
                 <p>{notice.body}</p><small>{new Date(notice.createdAt).toLocaleString()}</small></div>
               {!notice.readAt?<button type="button" onClick={()=>void markRead(notice)}>Mark read</button>:null}

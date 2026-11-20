@@ -1,0 +1,131 @@
+
+/* Shared administrator dashboard styles */
+
+.admin-dashboard .student-dashboard-stack {
+  gap: 12px;
+}
+
+.admin-dashboard .sd-hero {
+  padding: 14px 18px;
+}
+
+.admin-dashboard .sd-hero h1 {
+  font-size: 23px;
+}
+
+.admin-dashboard .sd-stat {
+  min-height: 70px;
+  padding: 10px 12px;
+}
+
+.admin-dashboard .sd-panel {
+  padding: 12px 14px;
+}
+
+.admin-dashboard .sd-line-chart {
+  height: 200px;
+  min-width: 0;
+}
+
+.ad-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.ad-toolbar select {
+  padding: 7px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  min-width: 180px;
+  background: white;
+  color: #334155;
+}
+
+.ad-period {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.ad-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+
+.ad-tab {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+}
+
+.ad-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.ad-table-wrapper {
+  overflow: auto;
+  max-height: 250px;
+}
+
+.ad-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.ad-table th {
+  background: #f8fafc;
+  color: #475569;
+  padding: 9px 12px;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.ad-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ad-table a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ad-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 760px) {
+  .admin-dashboard .sd-line-chart {
+    height: 190px;
+  }
+
+  .ad-period {
+    display: none;
+  }
+
+  .ad-toolbar select {
+    flex: 1;
+  }
+
+  .ad-table {
+    min-width: 580px;
+  }
+}
