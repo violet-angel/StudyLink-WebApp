@@ -22,6 +22,11 @@ function GroupDetail() {
   const [membershipRequests, setMembershipRequests] = useState<any[]>([]);
   const [canReviewRequests, setCanReviewRequests] = useState(false);
   const [groupResources, setGroupResources] = useState<any[]>([]);
+  const [groupMessages, setGroupMessages] = useState<any[]>([]);
+  const [messageText, setMessageText] = useState('');
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageError, setMessageError] = useState('');
   const [resourceTitle, setResourceTitle] = useState('');
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [uploadingResource, setUploadingResource] = useState(false);
@@ -195,6 +200,112 @@ useEffect(() => {
     }
   };
 
+
+const handleSendGroupMessage = async () => {
+  const body = messageText.trim();
+
+  if (!id || !body || sendingMessage || body.length > 2000) return;
+
+  setSendingMessage(true);
+  setMessageError('');
+
+  try {
+    const response = await apiFetch(
+      `/api/student/messages/${id}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ body })
+      }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to send message.');
+    }
+
+    setMessageText('');
+    await loadGroupMessages();
+
+  } catch (error) {
+    setMessageError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to send message.'
+    );
+  } finally {
+    setSendingMessage(false);
+  }
+};
+
+const loadGroupMessages = async () => {
+  if (!id) return;
+
+  setMessagesLoading(true);
+  setMessageError('');
+
+  try {
+    const response = await apiFetch(
+      `/api/student/messages/${id}`
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || 'Unable to load group messages.'
+      );
+    }
+
+    setGroupMessages(data.messages || []);
+
+  } catch (error) {
+    setMessageError(
+      error instanceof Error
+        ? error.message
+        : 'Unable to load group messages.'
+    );
+  } finally {
+    setMessagesLoading(false);
+  }
+};
+
+
+useEffect(() => {
+  if (!id || !(group?.isMember || group?.isOwner || joinedGroup)) {
+    setGroupMessages([]);
+    return;
+  }
+
+  let active = true;
+
+  const fetchMessages = async () => {
+    try {
+      const response = await apiFetch(
+        `/api/student/messages/${id}`
+      );
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+
+      if (active) {
+        setGroupMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error('Unable to refresh group messages:', error);
+    }
+  };
+
+  fetchMessages();
+
+  const interval = window.setInterval(fetchMessages, 10000);
+
+  return () => {
+    active = false;
+    window.clearInterval(interval);
+  };
+}, [id, group?.isMember, group?.isOwner, joinedGroup]);
 
 const loadGroupResources = async () => {
   if (!id) return;
@@ -841,6 +952,106 @@ const handleDeleteGroupResource = async (resource: any) => {
   </div>
 )}
    
+
+{(group.isMember || group.isOwner || joinedGroup) && (
+  <div
+    className="container"
+    style={{ marginTop: 20, marginBottom: 20 }}
+  >
+    <section className="detail-panel">
+      <div className="section-header">
+        <h2>Group Chat</h2>
+        <span className="panel-pill">
+          {groupMessages.length} messages
+        </span>
+      </div>
+
+      <div
+        role="log"
+        aria-label="Group messages"
+        style={{
+          maxHeight: 400,
+          overflowY: 'auto',
+          padding: 16,
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          marginBottom: 16
+        }}
+      >
+        {messagesLoading && groupMessages.length === 0 ? (
+          <p>Loading messages...</p>
+        ) : groupMessages.length === 0 ? (
+          <p>No messages yet. Start the conversation.</p>
+        ) : (
+          groupMessages.map(message => (
+            <div
+              key={message.id}
+              style={{
+                padding: 12,
+                marginBottom: 10,
+                borderBottom: '1px solid #e5e7eb'
+              }}
+            >
+              <strong>
+                {message.senderName || 'Group Member'}
+              </strong>
+
+              <span
+                style={{
+                  marginLeft: 10,
+                  fontSize: 12,
+                  color: '#6b7280'
+                }}
+              >
+                {new Date(message.createdAt).toLocaleString()}
+              </span>
+
+              <p style={{ marginTop: 8, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                {message.body}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+
+      {messageError && (
+        <p className="form-error" role="alert">
+          {messageError}
+        </p>
+      )}
+
+      <form
+        onSubmit={event => {
+          event.preventDefault();
+          void handleSendGroupMessage();
+        }}
+      >
+        <textarea
+          className="search-input"
+          placeholder="Write a message to your group..."
+          value={messageText}
+          onChange={event => setMessageText(event.target.value)}
+          maxLength={2000}
+          rows={3}
+          aria-label="Group message"
+          style={{
+            width: '100%',
+            marginBottom: 12,
+            resize: 'vertical'
+          }}
+        />
+
+        <button
+          type="submit"
+          className="button button-primary"
+          disabled={sendingMessage || !messageText.trim()}
+        >
+          {sendingMessage ? 'Sending...' : 'Send Message'}
+        </button>
+      </form>
+    </section>
+  </div>
+)}
       
 <Modal
   open={showResourceUpload}
