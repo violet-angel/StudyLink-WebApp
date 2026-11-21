@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import Modal from '../components/Modal';
 import { apiFetch } from '../lib/apiClient';
 import { addNotification } from '../lib/notifications';
+import * as mammoth from 'mammoth';
+import DOMPurify from 'dompurify';
 
 function GroupDetail() {
   const { id } = useParams();
@@ -26,10 +28,11 @@ function GroupDetail() {
   const [resourceInputKey, setResourceInputKey] = useState(0);
 
   const [resourcePreview, setResourcePreview] = useState<{
-    url: string;
-    title: string;
-    type: string;
-  } | null>(null);
+  url: string;
+  title: string;
+  type: string;
+  html?: string;
+} | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -312,6 +315,7 @@ const handleGroupResourceUpload = async () => {
 };
 
 
+
 const handleOpenGroupResource = async (resource: any) => {
   try {
     if (!resource.url?.includes('.private.blob.vercel-storage.com/')) {
@@ -335,6 +339,34 @@ const handleOpenGroupResource = async (resource: any) => {
 
     const file = await response.blob();
 
+    const filename = decodeURIComponent(
+      new URL(resource.url).pathname
+    ).toLowerCase();
+
+    const isDocx =
+      filename.endsWith('.docx') ||
+      file.type ===
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (isDocx) {
+      const arrayBuffer = await file.arrayBuffer();
+
+      const result = await mammoth.convertToHtml({
+        arrayBuffer
+      });
+
+      const safeHtml = DOMPurify.sanitize(result.value);
+
+      setResourcePreview({
+        url: '',
+        title: resource.title,
+        type: 'text/html',
+        html: safeHtml
+      });
+
+      return;
+    }
+
     const supportedTypes = [
       'application/pdf',
       'image/png',
@@ -343,7 +375,9 @@ const handleOpenGroupResource = async (resource: any) => {
     ];
 
     if (!supportedTypes.includes(file.type)) {
-      throw new Error('Preview unavailable. Please use Download.');
+      throw new Error(
+        'Preview unavailable for this format. Please use Download.'
+      );
     }
 
     setResourcePreview({
@@ -360,6 +394,7 @@ const handleOpenGroupResource = async (resource: any) => {
     );
   }
 };
+
 
 const handleDownloadGroupResource = async (resource: any) => {
   try {
@@ -901,28 +936,75 @@ const handleDeleteGroupResource = async (resource: any) => {
         </button>
       </div>
 
-      {resourcePreview.type.startsWith('image/') ? (
-        <img
-          src={resourcePreview.url}
-          alt={resourcePreview.title}
-          style={{
-            maxWidth: '100%',
-            flex: 1,
-            minHeight: 0,
-            objectFit: 'contain'
-          }}
-        />
-      ) : (
-        <iframe
-          src={resourcePreview.url}
-          title={resourcePreview.title}
-          style={{
-            width: '100%',
-            flex: 1,
-            border: 'none'
-          }}
-        />
-      )}
+      
+{resourcePreview.type === 'text/html' ? (
+  <iframe
+    title={resourcePreview.title}
+    sandbox=""
+    srcDoc={`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; img-src data:; style-src 'unsafe-inline'"
+          />
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #1f2937;
+              padding: 24px;
+              max-width: 900px;
+              margin: auto;
+              overflow-wrap: anywhere;
+            }
+            img { max-width: 100%; }
+            table {
+              border-collapse: collapse;
+              width: 100%;
+            }
+            td, th {
+              border: 1px solid #cbd5e1;
+              padding: 8px;
+            }
+          </style>
+        </head>
+        <body>${resourcePreview.html || ''}</body>
+      </html>
+    `}
+    style={{
+      width: '100%',
+      flex: 1,
+      minHeight: 0,
+      border: 'none'
+    }}
+  />
+) : resourcePreview.type.startsWith('image/') ? (
+  <img
+    src={resourcePreview.url}
+    alt={resourcePreview.title}
+    style={{
+      maxWidth: '100%',
+      flex: 1,
+      minHeight: 0,
+      objectFit: 'contain'
+    }}
+  />
+) : (
+  <iframe
+    src={resourcePreview.url}
+    title={resourcePreview.title}
+    style={{
+      width: '100%',
+      flex: 1,
+      minHeight: 0,
+      border: 'none'
+    }}
+  />
+)}
+
     </div>
   </div>
 )}
