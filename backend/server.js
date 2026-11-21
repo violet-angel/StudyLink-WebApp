@@ -232,28 +232,23 @@ async function findUserById(id) {
 async function requireAuth(req, res, next) {
   const token = getBearerToken(req.headers.authorization);
   const payload = verifyAuthToken(token);
-
   if (!payload) {
     return res.status(401).json({
       message: 'Authentication required.'
     });
   }
-
   const user = await findUserById(Number(payload.sub));
-
   if (!user) {
     return res.status(401).json({
       message: 'Authentication required.'
     });
   }
-
   if (user.is_active === false) {
     return res.status(403).json({
       message: 'Your account has been suspended. Contact the system administrator.',
       code: 'ACCOUNT_SUSPENDED'
     });
   }
-
   req.user = toPublicUser(user);
   req.auth = payload;
 
@@ -890,6 +885,44 @@ app.patch('/api/groups/:id', requireAuth, async (req, res) => {
 
   const updated = await loadGroupById(id);
   return res.json({ group: toGroupSummary(updated) });
+});
+ 
+
+app.delete('/api/groups/:id/leave', requireAuth, async (req, res) => {
+  const groupId = Number(req.params.id);
+
+  if (!Number.isSafeInteger(groupId) || groupId <= 0) {
+    return res.status(400).json({ message: 'Invalid group ID.' });
+  }
+
+  const group = await loadGroupById(groupId);
+
+  if (!group) {
+    return res.status(404).json({ message: 'Group not found.' });
+  }
+
+  if (Number(group.owner_user_id) === Number(req.user.id)) {
+    return res.status(403).json({
+      message: 'Group owners cannot exit their own groups.'
+    });
+  }
+
+  const result = await query(
+    `DELETE FROM group_enrollments
+     WHERE group_id = $1 AND user_id = $2
+     RETURNING user_id`,
+    [groupId, req.user.id]
+  );
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'You are not a member of this group.'
+    });
+  }
+
+  return res.json({
+    message: 'You have successfully exited the group.'
+  });
 });
 
 app.delete('/api/groups/:id', requireAuth, async (req, res) => {

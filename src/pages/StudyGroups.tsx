@@ -310,6 +310,53 @@ const joinGroup = async (group: StudyGroup) => {
   }
 };
 
+  
+const handleExitGroup = async (group: StudyGroup) => {
+  if (!group.isMember || group.isOwner) return;
+
+  if (!window.confirm(`Are you sure you want to exit "${group.name}"?`)) {
+    return;
+  }
+
+  setJoiningGroupIds(current => [...current, group.id]);
+
+  try {
+    const response = await apiFetch(
+      `/api/groups/${group.id}/leave`,
+      { method: 'DELETE' }
+    );
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to exit group.');
+    }
+
+    setGroups(current =>
+      current.map(item =>
+        item.id === group.id
+          ? {
+              ...item,
+              isMember: false,
+              requestStatus: null,
+              members: Math.max(0, item.members - 1),
+            }
+          : item
+      )
+    );
+
+  } catch (error) {
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to exit group.'
+    );
+  } finally {
+    setJoiningGroupIds(current =>
+      current.filter(id => id !== group.id)
+    );
+  }
+};
 
   const handleJoinGroup = (group: StudyGroup) => {
     if (group.joinRequirements && group.joinRequirements.length > 0) {
@@ -554,7 +601,8 @@ const joinGroup = async (group: StudyGroup) => {
                 <div className="group-footer">
                   <div className="group-actions">
                     <Link to={`/groups/${group.id}`} className="action-link">View details</Link>
-                    
+                    {group.isOwner && (
+                  <>
                     <button
                       type="button"
                       className="action-link"
@@ -570,36 +618,51 @@ const joinGroup = async (group: StudyGroup) => {
                             });
                         }, 100);
                       }}
+                      
                     >
                       Edit
                     </button>
 
                     <button type="button" className="action-link action-danger" onClick={() => deleteGroup(group.id)}>Delete</button>
+                    </>
+                )}
                   </div>
                   
-                  <button
-                    type="button"
-                    className="button button-primary button-sm"
-                    onClick={() => handleJoinGroup(group)}
-                    disabled={
-                      joiningGroupIds.includes(group.id) ||
-                      Boolean(group.isOwner) ||
-                      Boolean(group.isMember) ||
-                      group.requestStatus === 'pending'
-                    }
-                  >
-                    {group.isOwner
-                      ? 'Group Admin'
-                      : group.isMember
-                        ? 'Joined'
-                        : group.requestStatus === 'pending'
-                          ? 'Request Pending'
-                          : joiningGroupIds.includes(group.id)
-                            ? 'Processing...'
-                            : group.requiresApproval
-                              ? 'Request to Join'
-                              : 'Join Group'}
-                  </button>
+                  
+{group.isMember && !group.isOwner ? (
+  <button
+    type="button"
+    className="button button-sm"
+    onClick={() => handleExitGroup(group)}
+    disabled={joiningGroupIds.includes(group.id)}
+  >
+    {joiningGroupIds.includes(group.id)
+      ? 'Processing...'
+      : 'Exit Group'}
+  </button>
+) : (
+  <button
+    type="button"
+    className="button button-primary button-sm"
+    onClick={() => handleJoinGroup(group)}
+    disabled={
+      joiningGroupIds.includes(group.id) ||
+      Boolean(group.isOwner) ||
+      group.requestStatus === 'pending'
+    }
+  >
+    {group.isOwner
+      ? 'Group Admin'
+      : group.requestStatus === 'pending'
+        ? 'Request Pending'
+        : joiningGroupIds.includes(group.id)
+          ? 'Processing...'
+          : group.requiresApproval
+            ? 'Request to Join'
+            : 'Join Group'}
+  </button>
+)}
+
 
                 </div>
               </article>

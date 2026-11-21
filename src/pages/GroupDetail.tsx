@@ -6,6 +6,8 @@ import { addNotification } from '../lib/notifications';
 import * as mammoth from 'mammoth';
 import DOMPurify from 'dompurify';
 
+
+
 function GroupDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -529,6 +531,9 @@ const handleDeleteGroupResource = async (resource: any) => {
           <img src={group.image || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80'} alt={group.name} className="detail-hero-image" />
           <div className="detail-hero-copy">
             <p className="workspace-eyebrow">{group.courseCode || 'Study Group'}</p>
+            <Link to="/groups" className="button button-secondary">
+              ← Close Details
+            </Link>
             <h1>{group.name}</h1>
             <p className="workspace-lead">{group.description}</p>
 
