@@ -27,6 +27,7 @@ import Contact from './pages/Contact';
 import StudyLinkAI from './pages/StudyLinkAI';
 import './App.css';
 import './workspace.css';
+import './styles/CoursesDesign.css';
 import { getStoredUser } from './lib/session';
 import DirectMessages from './pages/DirectMessages';
 
