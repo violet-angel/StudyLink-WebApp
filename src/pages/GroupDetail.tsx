@@ -618,7 +618,7 @@ const handleDeleteGroupResource = async (resource: any) => {
   const contactLink = group.whatsappLink || (group.communicationChannel?.toLowerCase().includes('whatsapp') ? group.communicationChannel : undefined);
 
   return (
-    <section className="workspace-page">
+    <section className="workspace-page group-detail-page">
       <div className="container workspace-stack">
         <section className="detail-hero-card">
           <img src={group.image || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80'} alt={group.name} className="detail-hero-image" />

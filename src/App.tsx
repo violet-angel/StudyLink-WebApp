@@ -13,6 +13,7 @@ import GroupChat from './pages/GroupChat';
 import Courses from './pages/Courses';
 import './styles/LearningHubDesign.css';
 import './styles/StudyGroupsDesign.css';
+import './styles/GroupDetailDesign.css';
 import CourseDetail from './pages/CourseDetail';
 import AdminAcademic from './pages/AdminAcademic';
 import StudyGroups from './pages/StudyGroups';
