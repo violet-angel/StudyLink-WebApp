@@ -323,3 +323,188 @@
     transition: none;
   }
 }
+/* ===== STUDENT DASHBOARD TEXT / PANEL DESIGN IMPROVEMENT ===== */
+
+.student-dashboard .sd-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #dbe7f3;
+  border-radius: 18px;
+  padding: 1.1rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.student-dashboard .sd-panel-top {
+  margin-bottom: 0.8rem;
+}
+
+.student-dashboard .sd-panel-tag {
+  display: inline-block;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.55rem;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.student-dashboard .sd-panel-insight .sd-panel-tag {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0f766e;
+}
+
+.student-dashboard .sd-panel-sessions .sd-panel-tag {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.student-dashboard .sd-panel-notifications .sd-panel-tag {
+  background: rgba(236, 72, 153, 0.12);
+  color: #be185d;
+}
+
+.student-dashboard .sd-panel h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f2d5c;
+  line-height: 1.2;
+}
+
+.student-dashboard .sd-panel p {
+  margin: 0;
+  color: #5f7390;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.student-dashboard .sd-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.student-dashboard .sd-heading a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+  padding-top: 0.35rem;
+}
+
+.student-dashboard .sd-heading a:hover {
+  text-decoration: underline;
+}
+
+.student-dashboard .sd-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef4ff;
+  color: #1d4ed8;
+  border: 1px solid #cfe0ff;
+  border-radius: 999px;
+  padding: 0.38rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.student-dashboard .sd-list-item {
+  background: #ffffff;
+  border: 1px solid #e3ebf6;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.student-dashboard .sd-list-item strong {
+  color: #102a56;
+  font-size: 0.97rem;
+}
+
+.student-dashboard .sd-list-item p {
+  color: #60738e;
+  font-size: 0.88rem;
+  margin-top: 0.2rem;
+}
+
+.student-dashboard .sd-list-item small {
+  color: #8a9ab0;
+  font-size: 0.76rem;
+}
+
+.student-dashboard .sd-unread {
+  background: linear-gradient(180deg, #f4f8ff 0%, #ffffff 100%);
+  border-left: 4px solid #2563eb;
+}
+
+.student-dashboard .sd-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0.9rem 0 0.75rem;
+}
+
+.student-dashboard .sd-comparison > div {
+  background: #f7faff;
+  border: 1px solid #dce8f8;
+  border-radius: 14px;
+  padding: 0.8rem 0.9rem;
+}
+
+.student-dashboard .sd-comparison span {
+  display: block;
+  color: #667892;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.student-dashboard .sd-comparison strong {
+  color: #0f2d5c;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.student-dashboard .sd-result {
+  margin-top: 0.45rem !important;
+  color: #0f766e !important;
+  font-weight: 700;
+}
+
+.student-dashboard .sd-footnote {
+  margin-top: 0.85rem !important;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b !important;
+  font-size: 0.84rem !important;
+}
+
+.student-dashboard .recharts-wrapper {
+  background: linear-gradient(180deg, #fbfdff 0%, #f3f8ff 100%);
+  border: 1px solid #e3edf9;
+  border-radius: 16px;
+  padding: 0.8rem 0.5rem 0.4rem;
+}
+
+.student-dashboard .sd-banner {
+  background: #f8fbff;
+  border: 1px solid #dce8f8;
+  color: #4f6686;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+}
+
+.student-dashboard .sd-error {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+}

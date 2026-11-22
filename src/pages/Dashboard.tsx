@@ -125,7 +125,12 @@ export default function Dashboard(){
             <span>{label}</span><strong>{displayNumber(Number(value))}</strong></Link>)}
         </div>
         <div className="sd-panels">
-          <section className="sd-panel"><h2>Participation and peer comparison</h2><p>Your participation compared with classmates over six weeks.</p>
+          <section className="sd-panel sd-panel-analytics">
+            <div className="sd-panel-top">
+              <span className="sd-panel-tag">Analytics</span>
+              <h2>Participation and peer comparison</h2>
+              <p>Your participation compared with classmates over six weeks.</p>
+            </div>
             
 <div className="sd-line-chart">
   {weeks.length > 0 ? (
@@ -195,8 +200,12 @@ export default function Dashboard(){
 </div>
 
           </section>
-          <section className="sd-panel"><h2>How active am I?</h2>
-            <p>7-day points compared with students sharing at least one study group with you.</p>
+          <section className="sd-panel sd-panel-insight">
+            <div className="sd-panel-top">
+              <span className="sd-panel-tag">Insight</span>
+              <h2>How active am I?</h2>
+              <p>7-day points compared with students sharing at least one study group with you.</p>
+            </div>
             {average===null?<p className="sd-banner">Peer comparison appears once you share groups with at least four other students.</p>:<>
               <div className="sd-comparison"><div><span>You</span><strong>{score}</strong></div><div><span>Peer average</span><strong>{average}</strong></div></div>
               <p className="sd-result">{relative===null?'':relative>=0?`${relative}% above/equal to the group average`:`${Math.abs(relative)}% below the group average`}</p>
@@ -205,7 +214,14 @@ export default function Dashboard(){
           </section>
         </div>
         <div className="sd-panels">
-          <section className="sd-panel"><div className="sd-heading"><h2>Upcoming study sessions</h2><Link to="/sessions">All sessions</Link></div>
+          <section className="sd-panel sd-panel-sessions">
+            <div className="sd-heading">
+              <div className="sd-panel-top">
+                <span className="sd-panel-tag">Schedule</span>
+                <h2>Upcoming study sessions</h2>
+              </div>
+              <Link to="/sessions">All sessions</Link>
+            </div>
             {data?.upcomingSessions.length?data.upcomingSessions.slice(0,3).map(session=><div className="sd-list-item" key={session.id}>
               <div><strong>{session.title}</strong><p>{session.groupName} · {new Date(session.startsAt).toLocaleString()}</p></div>
               <label>My RSVP <select aria-label={`RSVP to ${session.title}`} disabled={saving===session.id} value={session.myRsvp||''} onChange={e=>void rsvp(session.id,e.target.value)}>
@@ -213,7 +229,16 @@ export default function Dashboard(){
               </select></label>
             </div>):<p>No upcoming sessions in your joined groups. <Link to="/groups">Browse groups</Link>.</p>}
           </section>
-          <section className="sd-panel"><div className="sd-heading"><h2>Notifications</h2><span>{notices.filter(n=>!n.readAt).length} unread</span></div>
+          <section className="sd-panel sd-panel-notifications">
+            <div className="sd-heading">
+              <div className="sd-panel-top">
+                <span className="sd-panel-tag">Updates</span>
+                <h2>Notifications</h2>
+              </div>
+              <span className="sd-unread-badge">
+                {notices.filter(n=>!n.readAt).length} unread
+              </span>
+            </div>
             {notices.length?notices.slice(0,3).map(notice=><div key={notice.id} className={`sd-list-item ${!notice.readAt?'sd-unread':''}`}>
               <div><Link to={notice.href} onClick={()=>void markRead(notice)}><strong>{notice.title}</strong></Link>
                 <p>{notice.body}</p><small>{new Date(notice.createdAt).toLocaleString()}</small></div>
