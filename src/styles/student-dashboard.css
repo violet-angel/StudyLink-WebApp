@@ -829,3 +829,191 @@
     transform: none;
   }
 }
+
+/* ===== COMPACT DASHBOARD LAYOUT ===== */
+
+.student-dashboard .container,
+.student-dashboard .student-dashboard-stack {
+  gap: 0.85rem;
+}
+
+.student-dashboard .sd-hero {
+  padding: 1rem 1.2rem !important;
+  border-radius: 18px !important;
+  min-height: auto !important;
+}
+
+.student-dashboard .sd-eyebrow {
+  margin-bottom: 0.45rem !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.1em !important;
+}
+
+.student-dashboard .sd-hero h1 {
+  font-size: clamp(1.45rem, 2vw, 2rem) !important;
+  line-height: 1.08 !important;
+  margin-bottom: 0.45rem !important;
+}
+
+.student-dashboard .sd-hero p {
+  font-size: 0.9rem !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+  max-width: 62ch;
+}
+
+.student-dashboard .sd-hero-actions {
+  gap: 0.55rem !important;
+}
+
+.student-dashboard .sd-hero-actions .button {
+  padding: 0.7rem 1rem !important;
+  font-size: 0.9rem !important;
+  border-radius: 10px !important;
+}
+
+/* 6 summary cards */
+.student-dashboard .sd-stats {
+  gap: 0.75rem !important;
+}
+
+.student-dashboard .sd-stat {
+  padding: 0.85rem 1rem !important;
+  border-radius: 14px !important;
+  min-height: auto !important;
+}
+
+.student-dashboard .sd-stat span {
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+}
+
+.student-dashboard .sd-stat strong {
+  font-size: clamp(1.45rem, 1.8vw, 1.75rem) !important;
+  margin-top: 0.35rem !important;
+  display: block;
+}
+
+/* main panels */
+.student-dashboard .sd-panels {
+  gap: 0.85rem !important;
+}
+
+.student-dashboard .sd-panel {
+  padding: 1rem !important;
+  border-radius: 16px !important;
+}
+
+.student-dashboard .sd-panel h2 {
+  font-size: 1.15rem !important;
+  margin-bottom: 0.35rem !important;
+  line-height: 1.2 !important;
+}
+
+.student-dashboard .sd-panel p {
+  font-size: 0.88rem !important;
+  line-height: 1.5 !important;
+}
+
+.student-dashboard .sd-panel-top {
+  margin-bottom: 0.55rem !important;
+}
+
+.student-dashboard .sd-panel-tag {
+  font-size: 0.68rem !important;
+  padding: 0.22rem 0.55rem !important;
+  margin-bottom: 0.4rem !important;
+}
+
+/* chart area */
+.student-dashboard .recharts-wrapper,
+.student-dashboard .sd-line-chart,
+.student-dashboard .sd-chart {
+  min-height: 220px !important;
+}
+
+.student-dashboard .recharts-responsive-container {
+  min-height: 220px !important;
+}
+
+.student-dashboard .recharts-cartesian-axis-tick text {
+  font-size: 10px !important;
+}
+
+/* comparison */
+.student-dashboard .sd-comparison {
+  gap: 0.6rem !important;
+  margin: 0.7rem 0 0.55rem !important;
+}
+
+.student-dashboard .sd-comparison > div {
+  padding: 0.65rem 0.75rem !important;
+  border-radius: 12px !important;
+}
+
+.student-dashboard .sd-comparison strong {
+  font-size: 1rem !important;
+}
+
+.student-dashboard .sd-result {
+  font-size: 0.88rem !important;
+}
+
+.student-dashboard .sd-footnote {
+  margin-top: 0.7rem !important;
+  padding: 0.7rem 0.85rem !important;
+  font-size: 0.8rem !important;
+}
+
+/* session and notification items */
+.student-dashboard .sd-list-item {
+  padding: 0.75rem 0.85rem !important;
+  border-radius: 12px !important;
+}
+
+.student-dashboard .sd-list-item strong {
+  font-size: 0.92rem !important;
+}
+
+.student-dashboard .sd-list-item p {
+  font-size: 0.84rem !important;
+}
+
+.student-dashboard .sd-list-item small {
+  font-size: 0.74rem !important;
+}
+
+.student-dashboard .sd-heading {
+  margin-bottom: 0.65rem !important;
+}
+
+.student-dashboard .sd-unread-badge {
+  font-size: 0.76rem !important;
+  padding: 0.3rem 0.65rem !important;
+}
+
+/* continue studying section */
+.student-dashboard .sd-actions h2 {
+  font-size: 1.05rem !important;
+}
+
+.student-dashboard .sd-actions a {
+  font-size: 0.88rem !important;
+}
+
+/* reduce overall vertical space */
+.student-dashboard.workspace-page {
+  padding-top: 0.6rem !important;
+  padding-bottom: 0.8rem !important;
+}
+
+/* make it fit better on medium screens */
+@media (min-width: 1024px) {
+  .student-dashboard .sd-stats {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+
+  .student-dashboard .sd-panels {
+    align-items: start;
+  }
+}
