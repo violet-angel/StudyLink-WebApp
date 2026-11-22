@@ -255,33 +255,24 @@ const loadGroups = async () => {
 
    
 const joinGroup = async (group: StudyGroup) => {
-  if (joiningGroupIds.includes(group.id) ||
-      group.isOwner || group.isMember ||
-      group.requestStatus === 'pending') {
+  if (joiningGroupIds.includes(group.id) || group.isOwner || group.isMember || group.requestStatus === 'pending') {
     return;
   }
-
   setJoiningGroupIds(current => [...current, group.id]);
-
   try {
     const requiresApproval = Boolean(group.requiresApproval);
-
     const response = await apiFetch(
       requiresApproval
         ? `/api/groups/${group.id}/request-join`
         : `/api/groups/${group.id}/enroll`,
       { method: 'POST' }
     );
-
     const data = await response.json().catch(() => ({}));
-
     if (!response.ok) {
       throw new Error(data.message || 'Unable to join group.');
     }
-
     setGroups(current =>
-      current.map(item =>
-        item.id === group.id
+      current.map(item => item.id === group.id
           ? {
               ...item,
               isMember: !requiresApproval,
@@ -291,16 +282,13 @@ const joinGroup = async (group: StudyGroup) => {
           : item
       )
     );
-
     setPendingJoinGroup(null);
     setAcceptedRequirements(false);
     setJoinError('');
-
   } catch (error) {
     const message = error instanceof Error
       ? error.message
       : 'Unable to process membership.';
-
     setJoinError(message);
     alert(message);
   } finally {

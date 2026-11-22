@@ -433,72 +433,54 @@ const handleOpenGroupResource = async (resource: any) => {
   try {
     if (!resource.url?.includes('.private.blob.vercel-storage.com/')) {
       const url = new URL(resource.url);
-
       if (!['http:', 'https:'].includes(url.protocol)) {
         throw new Error('Invalid resource URL.');
       }
-
       window.open(url.href, '_blank', 'noopener,noreferrer');
       return;
     }
-
     const response = await apiFetch(
       `/api/resources/${resource.id}/download?mode=preview`
     );
-
     if (!response.ok) {
       throw new Error('Unable to open resource.');
     }
-
     const file = await response.blob();
-
     const filename = decodeURIComponent(
       new URL(resource.url).pathname
     ).toLowerCase();
-
     const isDocx =
       filename.endsWith('.docx') ||
-      file.type ===
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
     if (isDocx) {
       const arrayBuffer = await file.arrayBuffer();
-
       const result = await mammoth.convertToHtml({
         arrayBuffer
       });
-
       const safeHtml = DOMPurify.sanitize(result.value);
-
       setResourcePreview({
         url: '',
         title: resource.title,
         type: 'text/html',
         html: safeHtml
       });
-
       return;
     }
-
     const supportedTypes = [
       'application/pdf',
       'image/png',
       'image/jpeg',
       'text/plain'
     ];
-
     if (!supportedTypes.includes(file.type)) {
-      throw new Error(
-        'Preview unavailable for this format. Please use Download.'
+      throw new Error( 'Preview unavailable for this format. Please use Download.'
       );
     }
-
     setResourcePreview({
       url: URL.createObjectURL(file),
       title: resource.title,
       type: file.type
     });
-
   } catch (error) {
     alert(
       error instanceof Error

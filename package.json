@@ -16,7 +16,8 @@
     "import:curated": "node scripts/import-curated-to-pg.js",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.20",

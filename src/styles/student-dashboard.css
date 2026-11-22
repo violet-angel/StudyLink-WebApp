@@ -114,3 +114,212 @@
     height: 190px;
   }
 }
+
+/* STUDYLINK — PREMIUM STUDENT DASHBOARD */
+
+.student-dashboard {
+  background: #f1f5fb;
+  color: #172b4d;
+  min-height: 100vh;
+}
+
+.student-dashboard-stack {
+  gap: 1rem;
+}
+
+/* Compact, colorful welcome banner */
+.student-dashboard .sd-hero {
+  background:
+    radial-gradient(circle at 95% 15%,
+      rgba(255,255,255,.17), transparent 32%),
+    linear-gradient(115deg,
+      #102a56 0%, #315cf5 60%, #0d9488 100%);
+  border-radius: 18px;
+  padding: 1.3rem 1.6rem;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(30,64,175,.16);
+}
+
+.student-dashboard .sd-hero h1 {
+  font-size: clamp(1.5rem, 2.2vw, 2rem);
+  line-height: 1.2;
+  color: #ffffff;
+  margin: .35rem 0;
+  max-width: none;
+}
+
+.student-dashboard .sd-hero p {
+  color: rgba(255,255,255,.88);
+  font-size: .9rem;
+  line-height: 1.55;
+}
+
+.student-dashboard .sd-eyebrow {
+  color: #a5f3fc;
+  letter-spacing: .09em;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+/* Welcome actions */
+.student-dashboard .sd-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+
+.student-dashboard .sd-hero-actions .button {
+  border-radius: 9px;
+  padding: .65rem .9rem;
+  font-size: .82rem;
+  font-weight: 600;
+}
+
+.student-dashboard .sd-hero-actions .button-primary {
+  background: #f59e0b;
+  color: #172554;
+  border-color: #f59e0b;
+}
+
+.student-dashboard .sd-hero-actions .button-secondary {
+  background: rgba(255,255,255,.13);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,.28);
+}
+
+/* Dashboard statistics */
+.student-dashboard .sd-stats {
+  gap: .75rem;
+}
+
+.student-dashboard .sd-stat {
+  background: #ffffff;
+  border: 1px solid #e3eaf5;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 4px 14px rgba(18,46,88,.05);
+  transition: transform .2s, box-shadow .2s;
+  border-top: 4px solid #315cf5;
+}
+
+.student-dashboard .sd-stat:nth-child(2) {
+  border-top-color: #0d9488;
+}
+
+.student-dashboard .sd-stat:nth-child(3) {
+  border-top-color: #f59e0b;
+}
+
+.student-dashboard .sd-stat:nth-child(4) {
+  border-top-color: #8b5cf6;
+}
+
+.student-dashboard .sd-stat:nth-child(5) {
+  border-top-color: #06b6d4;
+}
+
+.student-dashboard .sd-stat:nth-child(6) {
+  border-top-color: #ec4899;
+}
+
+.student-dashboard .sd-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(18,46,88,.12);
+}
+
+.student-dashboard .sd-stat span {
+  color: #64748b;
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+.student-dashboard .sd-stat strong {
+  color: #102a56;
+  font-size: 1.7rem;
+  line-height: 1.2;
+}
+
+/* Content panels and charts */
+.student-dashboard .sd-panels {
+  gap: 1rem;
+}
+
+.student-dashboard .sd-panel {
+  background: #ffffff;
+  border: 1px solid #e4ebf5;
+  border-radius: 16px;
+  padding: 1.15rem;
+  box-shadow: 0 5px 18px rgba(18,46,88,.045);
+}
+
+.student-dashboard .sd-panel h2 {
+  color: #102a56;
+  font-size: 1.05rem;
+  font-weight: 750;
+  margin-bottom: .5rem;
+}
+
+.student-dashboard .sd-panel > p {
+  color: #64748b;
+  font-size: .85rem;
+}
+
+.student-dashboard .sd-line-chart {
+  border-radius: 12px;
+  background: #f8faff;
+  padding: .5rem;
+}
+
+/* Messages and session rows */
+.student-dashboard .sd-list-item {
+  border: 1px solid #e9eef7;
+  border-radius: 10px;
+  padding: .8rem;
+  margin-bottom: .55rem;
+  background: #fbfcff;
+}
+
+.student-dashboard .sd-list-item:hover {
+  background: #f0f6ff;
+}
+
+.student-dashboard .sd-unread {
+  background: #eff6ff;
+  border-left: 3px solid #315cf5;
+}
+
+.student-dashboard .sd-heading a,
+.student-dashboard .sd-actions a {
+  color: #315cf5;
+  font-weight: 650;
+}
+
+/* Mobile improvements */
+@media (max-width: 768px) {
+  .student-dashboard .sd-hero {
+    padding: 1rem;
+    border-radius: 13px;
+  }
+
+  .student-dashboard .sd-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .student-dashboard .sd-stat {
+    padding: .8rem;
+  }
+
+  .student-dashboard .sd-stat strong {
+    font-size: 1.35rem;
+  }
+
+  .student-dashboard .sd-panel {
+    padding: .9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-dashboard .sd-stat {
+    transition: none;
+  }
+}
