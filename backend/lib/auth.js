@@ -61,30 +61,24 @@ export function verifyAuthToken(token) {
   if (!token) {
     return null;
   }
-
   const [encodedPayload, signature] = String(token).split('.');
   if (!encodedPayload || !signature) {
     return null;
   }
-
   const expectedSignature = crypto
     .createHmac('sha256', AUTH_SECRET)
     .update(encodedPayload)
     .digest('base64url');
-
   const signatureBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expectedSignature);
-
   if (signatureBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
     return null;
   }
-
   try {
     const payload = JSON.parse(base64urlDecode(encodedPayload));
     if (!payload.exp || Date.now() > payload.exp) {
       return null;
     }
-
     return payload;
   } catch {
     return null;

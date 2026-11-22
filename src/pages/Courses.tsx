@@ -45,61 +45,44 @@ function Courses() {
   }, [courses, searchTerm, selectedProgram, selectedSchool]);
 
   
-  const handleEnroll = async (course: any) => {
+  const handleEnroll = async (course: any) => { 
     console.log('ENROLL CLICKED:', course);
     console.log('COURSE ID:', course.id);
     setEnrollmentError('');
     setEnrollingCourseId(course.id);
-
     try {
-      if (!Number.isInteger(Number(course.id)) ||
-          Number(course.id) <= 0) {
+      if (!Number.isInteger(Number(course.id)) || Number(course.id) <= 0) {
         throw new Error(
           'This course is not available for server enrolment.'
         );
       }
-
       const response = await apiFetch(
         `/api/courses/${course.id}/enroll`,
         { method: 'POST' }
       );
-
       const data = await response.json().catch(() => ({}));
-
       if (!response.ok) {
         throw new Error(
           data.message || 'Unable to enrol in this course.'
         );
       }
-
       if (!data.course?.id || !data.course?.isEnrolled) {
         throw new Error(
           'Enrolment could not be verified. Refresh and try again.'
         );
       }
-
       setCourses(current =>
-        current.map(item =>
-          Number(item.id) === Number(data.course.id)
+        current.map(item => Number(item.id) === Number(data.course.id)
             ? {
-                ...item,
-                ...data.course,
+                ...item, ...data.course,
                 isEnrolled: true
-              }
-            : item
+              } : item
         )
       );
-
-    } catch (error) {
-      setEnrollmentError(
-        error instanceof Error
-          ? error.message
-          : 'Course enrolment failed.'
+    } catch (error) { setEnrollmentError( error instanceof Error
+          ? error.message : 'Course enrolment failed.'
       );
-
-    } finally {
-      setEnrollingCourseId(null);
-    }
+    } finally {  setEnrollingCourseId(null); }
   };
 
 

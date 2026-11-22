@@ -11,13 +11,14 @@
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.8fr);
   gap: 0.75rem;
-  padding: 0.95rem;
-  border-radius: 18px;
+  padding: 0.8rem 1rem;
+  border-radius: 14px;
   color: #fff7ed;
   position: relative;
   overflow: hidden;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
   min-height: auto;
+  align-items: center;
 }
 
 .workspace-hero::before {
@@ -55,19 +56,20 @@
 }
 
 .workspace-eyebrow {
-  margin: 0 0 0.9rem;
-  font-size: 0.8rem;
-  letter-spacing: 0.14em;
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 700;
   color: rgba(255, 247, 237, 0.82);
 }
 
 .workspace-hero h1 {
-  margin: 0 0 0.7rem;
-  font-size: clamp(1.65rem, 2.3vw, 2rem);
-  line-height: 1.06;
-  max-width: 14ch;
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.4rem, 2vw, 1.8rem);
+  line-height: 1.2;
+  max-width: 100%;
+  font-weight: 700;
 }
 
 .workspace-lead {

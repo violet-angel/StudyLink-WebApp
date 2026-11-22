@@ -72,6 +72,61 @@ export function registerStudentFeatures({ app, requireAuth, query }) {
     return r.rows.length?res.json({ok:true}):res.status(404).json({message:'Notification not found.'});
   }));
  
+    
+app.patch('/api/admin/users/:id/role', requireAuth, safe(async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      message: 'System administrator access required.'
+    });
+  }
+
+  const userId = Number(req.params.id);
+  const { role } = req.body || {};
+
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    return res.status(400).json({
+      message: 'Invalid user ID.'
+    });
+  }
+
+  if (!['student', 'admin'].includes(role)) {
+    return res.status(400).json({
+      message: 'Invalid role selected.'
+    });
+  }
+
+  if (userId === Number(req.user.id)) {
+    return res.status(403).json({
+      message: 'You cannot change your own administrator role.'
+    });
+  }
+
+  const result = await query(`
+    UPDATE users
+    SET role = $1,
+        updated_at = NOW()
+    WHERE id = $2
+      AND is_active = TRUE
+    RETURNING
+      id,
+      full_name AS name,
+      email,
+      role,
+      is_active AS "isActive"
+  `, [role, userId]);
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      message: 'Active user account not found.'
+    });
+  }
+
+  return res.json({
+    message: 'User role updated successfully.',
+    user: result.rows[0]
+  });
+}));
+
     app.get('/api/admin/users', requireAuth, safe(async (req, res) => {
       if (req.user.role !== 'admin') {
         return res.status(403).json({

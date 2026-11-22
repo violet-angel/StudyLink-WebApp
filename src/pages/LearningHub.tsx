@@ -485,17 +485,11 @@ const availableUploadGroups = studentGroups;
     }
     const selectedCourseId = Number(newResourceCourseId);
 
-    if (
-      shareMode === 'course' &&
-      (
-        !Number.isSafeInteger(selectedCourseId) ||
-        selectedCourseId <= 0
-      )
-    ) {
-      setResourceUploadStatus('Please select a valid course.');
+    if ( shareMode === 'course' &&
+      ( !Number.isSafeInteger(selectedCourseId) || selectedCourseId <= 0 )
+    ) { setResourceUploadStatus('Please select a valid course.');
       return;
     }
-
     if (shareMode === 'group' && !newResourceGroupId) {
       setResourceUploadStatus('Please select a study group.');
       return;
