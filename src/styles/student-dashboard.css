@@ -508,3 +508,324 @@
   border-radius: 14px;
   padding: 0.85rem 1rem;
 }
+
+
+/* ============================================
+   STUDYLINK PREMIUM DASHBOARD THEME
+   Inspired by modern e-learning workspaces
+   Design-only changes: no data or logic changes
+   ============================================ */
+
+.student-dashboard {
+  --sd-purple: #5b45e8;
+  --sd-indigo: #343cb9;
+  --sd-orange: #ff8a00;
+  --sd-text: #252449;
+  --sd-muted: #777990;
+
+  background:
+    radial-gradient(circle at 95% 3%, #ece8ff 0%, transparent 34%),
+    linear-gradient(150deg, #f8f6ff 0%, #f4f5ff 55%, #fff8ee 100%);
+  color: var(--sd-text);
+}
+
+/* WELCOME BANNER */
+
+.student-dashboard .sd-hero {
+  background:
+    radial-gradient(circle at 92% 18%,
+      rgba(255, 188, 100, .35), transparent 24%),
+    radial-gradient(circle at 75% 100%,
+      rgba(255, 255, 255, .16), transparent 32%),
+    linear-gradient(115deg,
+      #4138ba 0%, #6550e8 55%, #8070f2 100%);
+  border: 0;
+  border-radius: 25px;
+  padding: 1.6rem 2rem;
+  box-shadow: 0 16px 35px rgba(83, 66, 199, .18);
+}
+
+.student-dashboard .sd-eyebrow {
+  color: #ffe0a5;
+  font-weight: 800;
+  letter-spacing: .12em;
+  font-size: .76rem;
+}
+
+.student-dashboard .sd-hero h1 {
+  color: #ffffff;
+  font-size: clamp(1.8rem, 2.5vw, 2.5rem);
+  font-weight: 850;
+  letter-spacing: -.035em;
+}
+
+.student-dashboard .sd-hero p {
+  color: #f1edff;
+  font-size: .96rem;
+  line-height: 1.65;
+}
+
+/* BANNER BUTTONS */
+
+.student-dashboard .sd-hero-actions .button-primary {
+  background: #ff9400;
+  border-color: #ff9400;
+  color: #322052;
+  font-weight: 800;
+  box-shadow: 0 5px 0 rgba(100, 55, 0, .18);
+}
+
+.student-dashboard .sd-hero-actions .button-secondary {
+  background: rgba(255,255,255,.17);
+  border: 1px solid rgba(255,255,255,.45);
+  color: white;
+  font-weight: 700;
+}
+
+.student-dashboard .sd-hero-actions .button {
+  border-radius: 12px;
+  transition: transform .2s, box-shadow .2s;
+}
+
+.student-dashboard .sd-hero-actions .button:hover {
+  transform: translateY(-2px);
+}
+
+/* COLORFUL STATISTICS */
+
+.student-dashboard .sd-stat {
+  position: relative;
+  border: 0;
+  border-radius: 18px;
+  padding: 1.15rem;
+  background: #f0ebff;
+  box-shadow: 0 9px 22px rgba(54, 45, 118, .07);
+  overflow: hidden;
+}
+
+.student-dashboard .sd-stat:nth-child(1) {
+  background: #eee9ff;
+  border-bottom: 4px solid #7057e9;
+}
+
+.student-dashboard .sd-stat:nth-child(2) {
+  background: #e5f8f4;
+  border-bottom: 4px solid #13a889;
+}
+
+.student-dashboard .sd-stat:nth-child(3) {
+  background: #fff0dc;
+  border-bottom: 4px solid #ff9500;
+}
+
+.student-dashboard .sd-stat:nth-child(4) {
+  background: #e7efff;
+  border-bottom: 4px solid #4b83eb;
+}
+
+.student-dashboard .sd-stat:nth-child(5) {
+  background: #fff0f6;
+  border-bottom: 4px solid #ec66a0;
+}
+
+.student-dashboard .sd-stat:nth-child(6) {
+  background: #f1eaff;
+  border-bottom: 4px solid #9b67e9;
+}
+
+.student-dashboard .sd-stat span {
+  color: #5e5b7f;
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.student-dashboard .sd-stat strong {
+  color: #29245b;
+  font-size: clamp(1.8rem, 2.3vw, 2.25rem);
+  font-weight: 850;
+  letter-spacing: -.04em;
+}
+
+/* ANALYTICS AND CONTENT PANELS */
+
+.student-dashboard .sd-panel {
+  background: #ffffff;
+  border: 1px solid #ece8fb;
+  border-radius: 22px;
+  padding: 1.4rem;
+  box-shadow: 0 10px 28px rgba(60, 48, 124, .06);
+}
+
+.student-dashboard .sd-panel h2 {
+  color: #34318b;
+  font-size: clamp(1.15rem, 1.5vw, 1.42rem);
+  font-weight: 850;
+  letter-spacing: -.025em;
+  margin-bottom: .55rem;
+}
+
+.student-dashboard .sd-panel p {
+  color: #72738b;
+  line-height: 1.65;
+  font-size: .91rem;
+}
+
+.student-dashboard .sd-panels > .sd-panel:nth-child(1) {
+  border-top: 5px solid #7057e9;
+}
+
+.student-dashboard .sd-panels > .sd-panel:nth-child(2) {
+  border-top: 5px solid #ff9b22;
+}
+
+.student-dashboard .sd-panels > .sd-panel:nth-child(3) {
+  border-top: 5px solid #12b6a0;
+}
+
+.student-dashboard .sd-panels > .sd-panel:nth-child(4) {
+  border-top: 5px solid #ed75b2;
+}
+
+/* GRAPH: WARMER PRESENTATION */
+
+.student-dashboard .sd-line-chart,
+.student-dashboard .recharts-wrapper {
+  background: linear-gradient(
+    155deg, #fff8e9 0%, #fff4e6 55%, #f4eeff 100%
+  );
+  border: 1px solid #f7e6d3;
+  border-radius: 18px;
+}
+
+/* Recharts elements, where used */
+
+.student-dashboard .recharts-cartesian-grid line {
+  stroke: #e5dce8;
+  stroke-dasharray: 4 5;
+}
+
+.student-dashboard .recharts-cartesian-axis-tick text {
+  fill: #77718d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.student-dashboard .recharts-legend-item-text {
+  color: #5842cb !important;
+  font-weight: 700;
+}
+
+.student-dashboard .recharts-tooltip-wrapper {
+  filter: drop-shadow(0 8px 15px rgba(54, 39, 117, .13));
+}
+
+/* PEER COMPARISON */
+
+.student-dashboard .sd-comparison > div {
+  background: #f3efff;
+  border: 1px solid #e6ddff;
+  border-radius: 15px;
+}
+
+.student-dashboard .sd-comparison strong {
+  color: #5842d3;
+}
+
+.student-dashboard .sd-result {
+  color: #0f9f84 !important;
+  font-weight: 800;
+}
+
+.student-dashboard .sd-footnote {
+  background: #faf7ff;
+  border: 1px solid #ebe5fa;
+  border-left: 4px solid #9077ef;
+  border-radius: 12px;
+}
+
+/* SESSIONS AND NOTIFICATIONS */
+
+.student-dashboard .sd-heading a,
+.student-dashboard .sd-actions a {
+  color: #6047dd;
+  font-weight: 800;
+}
+
+.student-dashboard .sd-list-item {
+  background: #fbfaff;
+  border: 1px solid #e9e4fb;
+  border-radius: 14px;
+  padding: .95rem;
+  transition: background .2s, transform .2s;
+}
+
+.student-dashboard .sd-list-item:hover {
+  background: #f0edff;
+  transform: translateY(-2px);
+}
+
+.student-dashboard .sd-list-item strong {
+  color: #3a328e;
+}
+
+.student-dashboard .sd-unread {
+  background: #f1edff;
+  border-left: 4px solid #7057e9;
+}
+
+/* LABELS AND BADGES FROM PREVIOUS CHANGES */
+
+.student-dashboard .sd-panel-tag {
+  background: #eee9ff;
+  color: #634bd4;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.student-dashboard .sd-panel-insight .sd-panel-tag {
+  background: #fff0da;
+  color: #b96c00;
+}
+
+.student-dashboard .sd-panel-sessions .sd-panel-tag {
+  background: #e1f8f1;
+  color: #087d64;
+}
+
+.student-dashboard .sd-panel-notifications .sd-panel-tag {
+  background: #ffebf3;
+  color: #c33e80;
+}
+
+.student-dashboard .sd-unread-badge {
+  background: #eee9ff;
+  color: #634bd4;
+  border-color: #e0d7ff;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+  .student-dashboard .sd-hero {
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+
+  .student-dashboard .sd-panel {
+    padding: 1rem;
+    border-radius: 17px;
+  }
+
+  .student-dashboard .sd-stat {
+    padding: .9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-dashboard .sd-stat,
+  .student-dashboard .sd-list-item,
+  .student-dashboard .sd-hero-actions .button {
+    transition: none;
+    transform: none;
+  }
+}
