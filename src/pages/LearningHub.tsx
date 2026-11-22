@@ -650,7 +650,7 @@ const availableUploadGroups = studentGroups;
           : 'All shared resources';
 
   return (
-    <section className="workspace-page">
+    <section className="workspace-page learning-hub-page">
 
       {preview && (
         <div

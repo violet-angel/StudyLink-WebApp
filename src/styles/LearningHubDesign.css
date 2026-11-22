@@ -1,0 +1,389 @@
+
+/* STUDYLINK - LEARNING HUB DESIGN */
+
+.learning-hub-page {
+  font-size: 13px;
+  color: #172b4d;
+}
+
+.learning-hub-page,
+.learning-hub-page * {
+  box-sizing: border-box;
+}
+
+/* Main layout */
+
+.learning-hub-page .workspace-stack {
+  gap: 12px;
+}
+
+.learning-hub-page .workspace-hero {
+  padding: 16px 20px;
+  gap: 14px;
+  border-radius: 14px;
+  grid-template-columns: minmax(0, 1.5fr) minmax(200px, 0.7fr);
+}
+
+.learning-hub-page .workspace-hero-resources {
+  background: linear-gradient(
+    120deg,
+    #10294b 0%,
+    #164b83 55%,
+    #087f8c 100%
+  );
+}
+
+.learning-hub-page .workspace-hero h1 {
+  font-size: clamp(17px, 1.7vw, 21px);
+  line-height: 1.3;
+  margin: 0 0 6px;
+}
+
+.learning-hub-page .workspace-eyebrow {
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+
+.learning-hub-page .workspace-lead {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Statistics */
+
+.learning-hub-page .hero-stat-grid {
+  gap: 7px;
+}
+
+.learning-hub-page .hero-stat-card {
+  padding: 9px 12px;
+  border-radius: 10px;
+}
+
+.learning-hub-page .hero-stat-value {
+  font-size: 19px;
+}
+
+.learning-hub-page .hero-stat-label {
+  font-size: 11px;
+}
+
+/* Toolbars */
+
+.learning-hub-page .workspace-toolbar {
+  padding: 12px 14px;
+  gap: 12px;
+  border-radius: 12px;
+  border: 1px solid #dbe5f1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.learning-hub-page .workspace-toolbar h2 {
+  font-size: 16px;
+  color: #123f79;
+}
+
+.learning-hub-page .workspace-toolbar p {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.learning-hub-page .toolbar-actions {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Inputs and dropdowns */
+
+.learning-hub-page .search-input,
+.learning-hub-page .filter-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 35px;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px solid #cddbec;
+  border-radius: 8px;
+  background-color: #f8fbff;
+  color: #243b53;
+}
+
+.learning-hub-page .search-input:focus,
+.learning-hub-page .filter-select:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.learning-hub-page .toolbar-actions .filter-select {
+  width: auto;
+  min-width: 165px;
+}
+
+/* Upload and filter section */
+
+.learning-hub-page .library-toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
+  background: #ffffff;
+}
+
+.learning-hub-page .resource-upload-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d7e8ff;
+  border-radius: 11px;
+  background: linear-gradient(
+    135deg,
+    #eff6ff 0%,
+    #f8fbff 100%
+  );
+}
+
+.learning-hub-page .resource-upload-panel h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #16477c;
+}
+
+.learning-hub-page .resource-upload-panel .filter-select,
+.learning-hub-page .resource-upload-panel .search-input {
+  margin-bottom: 7px !important;
+}
+
+.learning-hub-page .resource-upload-panel input[type="file"] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 7px;
+  font-size: 11px;
+  border-radius: 8px;
+  background: white;
+  border: 1px dashed #adc7e5;
+}
+
+.learning-hub-page .resource-upload-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+/* Compact resource grid */
+
+.learning-hub-page .resource-library-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 280px), 1fr)
+  );
+  gap: 13px;
+  align-items: stretch;
+}
+
+/* Resource cards */
+
+.learning-hub-page .resource-library-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 9px;
+  padding: 13px;
+  border-radius: 13px;
+  background: #ffffff;
+  border: 1px solid #dae5f2;
+  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.learning-hub-page .resource-library-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 9px 22px rgba(15, 23, 42, 0.09);
+}
+
+/* Resource headings */
+
+.learning-hub-page .resource-card-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.learning-hub-page .resource-card-topline .detail-chip {
+  padding: 4px 9px;
+  font-size: 10px;
+  border-radius: 20px;
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.learning-hub-page .resource-card-topline .mini-label {
+  font-size: 10px;
+  letter-spacing: 0;
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+
+.learning-hub-page .resource-library-card h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.35;
+  color: #153b68;
+  overflow-wrap: anywhere;
+}
+
+.learning-hub-page .resource-library-card > p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #526277;
+  overflow-wrap: anywhere;
+}
+
+/* Colored information panels */
+
+.learning-hub-page .resource-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.learning-hub-page .resource-card-meta > div {
+  min-width: 0;
+  padding: 9px;
+  border-radius: 9px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+/* School and Program */
+
+.learning-hub-page .resource-card-meta > div:first-child {
+  background: #e8f3ff;
+  border: 1px solid #d5e8ff;
+}
+
+/* Usage details */
+
+.learning-hub-page .resource-card-meta > div:nth-child(2) {
+  background: #f2ecff;
+  border: 1px solid #e6dcff;
+}
+
+.learning-hub-page .resource-card-meta .mini-label {
+  font-size: 10px;
+  color: #536987;
+  letter-spacing: 0.02em;
+}
+
+.learning-hub-page .resource-card-meta strong {
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.45;
+  color: #263b58;
+  overflow-wrap: anywhere;
+}
+
+/* Compact buttons */
+
+.learning-hub-page .button {
+  width: auto;
+  min-height: 32px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+
+.learning-hub-page .button-primary {
+  background: #1765b4;
+  color: white;
+}
+
+.learning-hub-page .button-secondary {
+  background: #eff6ff;
+  color: #16477c;
+  border: 1px solid #c9dcf4;
+}
+
+.learning-hub-page .detail-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: auto;
+  padding-top: 5px;
+}
+
+.learning-hub-page .detail-action-row .button {
+  min-height: 30px;
+  padding: 6px 10px;
+  font-size: 11px;
+}
+
+/* Loading and empty states */
+
+.learning-hub-page .workspace-loading-card,
+.learning-hub-page .empty-state {
+  padding: 18px;
+  border-radius: 12px;
+}
+
+/* Tablets */
+
+@media (max-width: 900px) {
+  .learning-hub-page .library-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile */
+
+@media (max-width: 600px) {
+  .learning-hub-page .workspace-hero {
+    grid-template-columns: 1fr;
+    padding: 13px;
+  }
+
+  .learning-hub-page .workspace-hero h1 {
+    font-size: 17px;
+  }
+
+  .learning-hub-page .workspace-toolbar {
+    padding: 10px;
+    flex-wrap: wrap;
+  }
+
+  .learning-hub-page .library-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-hub-page .resource-library-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .learning-hub-page .resource-library-card {
+    padding: 11px;
+  }
+
+  .learning-hub-page .resource-card-meta {
+    gap: 6px;
+  }
+
+  .learning-hub-page .toolbar-actions {
+    width: 100%;
+  }
+
+  .learning-hub-page .toolbar-actions .filter-select {
+    min-width: 0;
+    flex: 1;
+  }
+}
