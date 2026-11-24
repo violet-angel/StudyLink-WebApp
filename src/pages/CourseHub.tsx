@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiFetch } from '../lib/apiClient';
 import { getCourseById } from '../lib/academic';
+import '../styles/CourseHubDesign.css';
 
 type CourseHubCourse = {
   id: number | string;
@@ -138,7 +139,7 @@ function CourseHub() {
   }
 
   return (
-    <section className="workspace-page">
+    <section className="workspace-page course-hub-page">
       <div className="container workspace-stack">
         <section className="workspace-hero workspace-hero-compact">
           <div>
@@ -149,7 +150,7 @@ function CourseHub() {
         </section>
 
         <div className="detail-layout">
-          <div className="detail-panel">
+          <div className="detail-panel hub-overview">
             <h2>Overview</h2>
             <p>{course.overview}</p>
 
@@ -157,10 +158,10 @@ function CourseHub() {
             <p>Open study groups, discussions, and announcements for this course will appear here.</p>
           </div>
 
-          <aside className="detail-panel">
+          <aside className="detail-panel hub-resources">
             <h3>Resources</h3>
-            <div style={{ display: 'grid', gap: 8 }}>
-              {(course.resources || []).map((r) => (
+            <div className="hub-resource-list" style={{ display: 'grid', gap: 8 }}>
+                {(course.resources || []).map((r) => (
                 <div key={r.id} className="card">
                   <strong>{r.title}</strong>
                   <div style={{ marginTop: 6 }}>
@@ -170,7 +171,7 @@ function CourseHub() {
               ))}
             </div>
 
-            <div style={{ marginTop: 12 }}>
+            <div className="hub-upload" style={{ marginTop: 12 }}>
               <h4>Add resource</h4>
               <input placeholder="Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 8 }} />
               <input placeholder="URL (https://...)" value={newUrl} onChange={(e) => setNewUrl(e.target.value)} style={{ width: '100%', padding: 8, marginBottom: 8 }} />
@@ -180,7 +181,7 @@ function CourseHub() {
               <button className="button button-primary" onClick={handleAddResource} disabled={uploading}>{uploading ? 'Uploading…' : 'Add / Upload'}</button>
             </div>
 
-            <div style={{ marginTop: 16 }}>
+            <div className="hub-preview" style={{ marginTop: 16 }}>
               <h4>Preview</h4>
               {course.resources && course.resources[0] ? <PdfPreview url={course.resources[0].url} /> : <p>No preview available</p>}
             </div>
