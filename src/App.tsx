@@ -33,6 +33,7 @@ import './workspace.css';
 import './styles/CoursesDesign.css';
 import './styles/DirectMessagesDesign.css';
 import './styles/DiscoverClassmatesDesign.css';
+import './styles/SessionsDesign.css';
 import { getStoredUser } from './lib/session';
 import DirectMessages from './pages/DirectMessages';
 

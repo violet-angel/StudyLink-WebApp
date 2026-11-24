@@ -1,0 +1,604 @@
+
+/* STUDYLINK - SESSIONS PAGE DESIGN */
+
+.sessions-page {
+  font-size: 12px;
+  color: #243b53;
+  padding: 12px 0 20px;
+}
+
+.sessions-page,
+.sessions-page * {
+  box-sizing: border-box;
+}
+
+.sessions-page .workspace-stack {
+  gap: 12px;
+}
+
+/* COMPACT HEADER */
+
+.sessions-page .workspace-hero {
+  grid-template-columns:
+    minmax(0, 1.5fr) minmax(190px, .7fr);
+  gap: 12px;
+  padding: 16px 19px;
+  border-radius: 13px;
+}
+
+.sessions-page .workspace-hero-sessions {
+  background: linear-gradient(
+    120deg,
+    #10294b,
+    #2453a1 60%,
+    #087f8c
+  );
+}
+
+.sessions-page .workspace-eyebrow {
+  margin-bottom: 5px;
+  font-size: 10px;
+}
+
+.sessions-page .workspace-hero h1 {
+  margin: 0;
+  font-size: clamp(17px, 1.8vw, 21px);
+  line-height: 1.35;
+}
+
+/* HEADER STATISTICS */
+
+.sessions-page .hero-stat-grid {
+  gap: 7px;
+}
+
+.sessions-page .hero-stat-card {
+  padding: 8px 11px;
+  border-radius: 9px;
+}
+
+.sessions-page .hero-stat-value {
+  font-size: 19px;
+}
+
+.sessions-page .hero-stat-label {
+  font-size: 10.5px;
+}
+
+/* SCHEDULE HEADER */
+
+.sessions-page .groups-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #edf5ff;
+  border: 1px solid #d7e7fa;
+  border-radius: 11px;
+}
+
+.sessions-page .page-header h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: #123f79;
+}
+
+.sessions-page .page-description {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+/* SESSION BOARD */
+
+.sessions-page .session-board {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 390px), 1fr)
+  );
+  gap: 12px;
+  align-items: start;
+}
+
+/* MAIN SESSION CARD */
+
+.sessions-page .polished-session-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 11px;
+  padding: 12px;
+  min-width: 0;
+  height: auto;
+  border: 1px solid #dbe5f2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(15,23,42,.05);
+  transition: box-shadow .2s, transform .2s;
+}
+
+.sessions-page .polished-session-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 9px 20px rgba(15,23,42,.09);
+}
+
+/* DATE PANEL */
+
+.sessions-page .session-date-block {
+  width: 58px;
+  min-width: 0;
+  height: 67px;
+  min-height: 0;
+  padding: 8px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 9px;
+  background: #e8f3ff;
+  border: 1px solid #cfe4fa;
+  color: #174d83;
+}
+
+.sessions-page .session-month {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.sessions-page .session-day {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* SESSION CONTENT */
+
+.sessions-page .session-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sessions-page .session-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.sessions-page .session-heading-row > div {
+  min-width: 0;
+  flex: 1 1 160px;
+}
+
+.sessions-page .session-course-tag {
+  margin: 0 0 4px;
+  font-size: 10px;
+  letter-spacing: .03em;
+  color: #2463a6;
+}
+
+.sessions-page .session-title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 750;
+  color: #123f79;
+  overflow-wrap: anywhere;
+}
+
+/* STATUS BADGES */
+
+.sessions-page .session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 25px;
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbefd0;
+}
+
+/* ATTENDANCE STATUS */
+
+.sessions-page .session-attendance-status {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: #f1ebff;
+  border: 1px solid #e2d8fc;
+  color: #6042a0;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+/* DATE, LOCATION AND GROUP */
+
+.sessions-page .session-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+  margin: 0;
+}
+
+.sessions-page .session-meta span {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: #f0f6ff;
+  border: 1px solid #dae9fa;
+  color: #31557c;
+  font-size: 10.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+/* SUMMARY COUNTS */
+
+.sessions-page .session-detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+}
+
+.sessions-page .session-detail-grid > article {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  width: fit-content;
+  min-width: 78px;
+  max-width: 100%;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #e8f3ff;
+  border: 1px solid #d5e7fc;
+}
+
+.sessions-page .session-detail-grid
+  > article:nth-child(2) {
+  background: #f2ecff;
+  border-color: #e4dafa;
+}
+
+.sessions-page .session-detail-grid
+  > article:nth-child(3) {
+  background: #e7f8f0;
+  border-color: #d0eddf;
+}
+
+.sessions-page .mini-label {
+  font-size: 9px;
+  letter-spacing: .02em;
+  line-height: 1.3;
+  color: #61738d;
+}
+
+.sessions-page .session-detail-grid strong {
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.2;
+  color: #173e70;
+}
+
+/* PREPARATION NOTES */
+
+.sessions-page .session-notes {
+  padding: 9px 11px;
+  background: #fff8e9;
+  border: 1px solid #f9e5bc;
+  border-radius: 8px;
+}
+
+.sessions-page .session-notes strong {
+  font-size: 11px;
+  color: #85581a;
+}
+
+.sessions-page .session-notes ul {
+  margin: 5px 0 0;
+  padding-left: 17px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #675b48;
+}
+
+.sessions-page .session-notes li {
+  margin-bottom: 3px;
+}
+
+/* COMPACT BUTTONS - NO STRETCHING */
+
+.sessions-page .button,
+.sessions-page .text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 6px 11px;
+  border-radius: 7px;
+  font-size: 10.5px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  text-decoration: none;
+}
+
+.sessions-page .button-primary {
+  background: #1765b4;
+  color: #fff;
+}
+
+.sessions-page .button-secondary {
+  background: #edf5ff;
+  color: #16477c;
+  border: 1px solid #d0e1f5;
+}
+
+.sessions-page .action-danger {
+  color: #be123c;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+}
+
+.sessions-page .button:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+/* ACTIONS UNDER THE CARD */
+
+.sessions-page .session-actions-column {
+  grid-column: 2;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  margin: 0;
+  padding-top: 9px;
+  border-top: 1px solid #e8eef6;
+}
+
+.sessions-page .session-actions-column .button {
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* CREATE / EDIT SESSION PANEL */
+
+.sessions-page .management-panel {
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #dbe5f2;
+  box-shadow: 0 4px 14px rgba(15,23,42,.05);
+}
+
+.sessions-page .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 11px;
+}
+
+.sessions-page .section-header h2 {
+  margin: 0;
+  font-size: 15px;
+  color: #123f79;
+}
+
+.sessions-page .management-form {
+  display: grid;
+  gap: 10px;
+}
+
+.sessions-page .form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.sessions-page .form-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sessions-page .management-form label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 5px;
+  font-size: 11px;
+  color: #425672;
+}
+
+.sessions-page .management-form input,
+.sessions-page .management-form select,
+.sessions-page .management-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #cddbec;
+  border-radius: 8px;
+  background: #f8fbff;
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #243b53;
+}
+
+.sessions-page .management-form input,
+.sessions-page .management-form select {
+  min-height: 35px;
+}
+
+.sessions-page .management-form textarea {
+  min-height: 65px;
+  resize: vertical;
+}
+
+.sessions-page .management-form
+  :is(input, select, textarea):focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.sessions-page .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 5px;
+}
+
+/* ATTENDANCE REGISTER */
+
+.sessions-page .detail-panel {
+  min-width: 0;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #dbe5f2;
+  border-radius: 12px;
+}
+
+.sessions-page .member-list {
+  display: grid;
+  gap: 7px;
+}
+
+.sessions-page .member-list-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+}
+
+.sessions-page .member-list-card:nth-child(even) {
+  background: #f3efff;
+  border-color: #e7defa;
+}
+
+.sessions-page .member-list-card strong {
+  font-size: 11.5px;
+  color: #123f79;
+}
+
+.sessions-page .member-list-card p {
+  margin: 3px 0 0;
+  font-size: 10.5px;
+  color: #64748b;
+  overflow-wrap: anywhere;
+}
+
+.sessions-page .member-list-card .filter-select {
+  width: fit-content;
+  min-width: 125px;
+  max-width: 100%;
+  min-height: 32px;
+  padding: 6px 9px;
+  border: 1px solid #cddbec;
+  border-radius: 7px;
+  font-size: 11px;
+  background: #fff;
+}
+
+/* RESPONSIVENESS */
+
+@media (max-width: 900px) {
+  .sessions-page .workspace-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .sessions-page .workspace-hero {
+    padding: 12px;
+  }
+
+  .sessions-page .workspace-hero h1 {
+    font-size: 17px;
+  }
+
+  .sessions-page .groups-header {
+    padding: 10px;
+  }
+
+  .sessions-page .session-board {
+    grid-template-columns: 1fr;
+  }
+
+  .sessions-page .polished-session-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .sessions-page .session-date-block {
+    width: 48px;
+    height: 61px;
+  }
+
+  .sessions-page .session-day {
+    font-size: 21px;
+  }
+
+  .sessions-page .session-content {
+    gap: 7px;
+  }
+
+  .sessions-page .session-actions-column {
+    grid-column: 1 / -1;
+  }
+
+  .sessions-page .form-grid-two {
+    grid-template-columns: 1fr;
+  }
+
+  .sessions-page .management-panel,
+  .sessions-page .detail-panel {
+    padding: 11px;
+  }
+}
