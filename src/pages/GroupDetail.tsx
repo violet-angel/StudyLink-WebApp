@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/apiClient';
 import { addNotification } from '../lib/notifications';
 import * as mammoth from 'mammoth';
 import DOMPurify from 'dompurify';
+import '../styles/GroupChatDesign.css';
 
 
 
@@ -940,7 +941,7 @@ const handleDeleteGroupResource = async (resource: any) => {
     className="container"
     style={{ marginTop: 20, marginBottom: 20 }}
   >
-    <section className="detail-panel">
+    <section className="detail-panel group-chat-panel">
       <div className="section-header">
         <h2>Group Chat</h2>
         <span className="panel-pill">
@@ -949,8 +950,10 @@ const handleDeleteGroupResource = async (resource: any) => {
       </div>
 
       <div
+        className="group-chat-log"
         role="log"
         aria-label="Group messages"
+        
         style={{
           maxHeight: 400,
           overflowY: 'auto',
@@ -968,6 +971,7 @@ const handleDeleteGroupResource = async (resource: any) => {
           groupMessages.map(message => (
             <div
               key={message.id}
+              className="group-chat-message"
               style={{
                 padding: 12,
                 marginBottom: 10,
@@ -1003,6 +1007,7 @@ const handleDeleteGroupResource = async (resource: any) => {
       )}
 
       <form
+      className="group-chat-compose"
         onSubmit={event => {
           event.preventDefault();
           void handleSendGroupMessage();
