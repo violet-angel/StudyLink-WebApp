@@ -195,11 +195,7 @@ export default function DirectMessages() {
                   className={`sd-list-item dm-message-row ${
                     mine ? 'dm-sent' : 'dm-received'
                   }`}
-                  style={{
-                    justifyContent: mine
-                      ? 'flex-end'
-                      : 'flex-start'
-                  }}
+                  
                 >
                   <div className={`dm-bubble ${
                     mine ? 'dm-bubble-sent' : 'dm-bubble-received'
@@ -251,12 +247,7 @@ export default function DirectMessages() {
               setBody(event.target.value)
             }
             placeholder="Write a private message..."
-            style={{
-              flex: '1 1 260px',
-              padding: 12,
-              border: '1px solid #cbd5e1',
-              borderRadius: 8
-            }}
+            
           />
 
           <button
