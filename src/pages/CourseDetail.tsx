@@ -5,6 +5,7 @@ import * as mammoth from 'mammoth';
 import DOMPurify from 'dompurify';
 import { buildCourseContent, buildStudyLinkAiResponse } from '../lib/studylinkContent';
 import { addNotification } from '../lib/notifications';
+import '../styles/CourseHubDesign.css';
 
 const hubTabs = [
   { key: 'overview', label: 'Overview' },
@@ -847,8 +848,8 @@ const renderResourceGrid = (items: any[], buttonLabel: string) => (
   }
 
   return (
-    <section className="workspace-page">
-      <div className="container workspace-stack">
+  <section className="workspace-page course-hub-page">
+    <div className="container workspace-stack">
 
         {resourcePreview && (
           <div
@@ -1005,7 +1006,7 @@ const renderResourceGrid = (items: any[], buttonLabel: string) => (
             </button>
           ))}
         </div>
-        <div className="hub-section" style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: '1.5rem' }}>
+        <div className="hub-section" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(260px, 320px)', gap: '12px' }}>
           <div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.6rem' }}>
               <label className="mini-label" style={{ marginRight: '0.5rem' }}>Audience:</label>
