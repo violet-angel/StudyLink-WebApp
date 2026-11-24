@@ -1,0 +1,434 @@
+
+/* STUDYLINK - DISCOVER CLASSMATES */
+
+.discover-page {
+  padding: 12px 0 20px;
+  background: #f7f9fd;
+  font-size: 12px;
+  color: #243b53;
+}
+
+.discover-page,
+.discover-page * {
+  box-sizing: border-box;
+}
+
+/* PAGE SPACING */
+
+.discover-page .workspace-stack {
+  gap: 12px;
+}
+
+/* COMPACT HERO */
+
+.discover-page .workspace-hero {
+  grid-template-columns:
+    minmax(0, 1.5fr) minmax(180px, 0.7fr);
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 13px;
+}
+
+.discover-page .workspace-hero-discover {
+  background: linear-gradient(
+    120deg,
+    #10294b 0%,
+    #284a9b 60%,
+    #087f8c 100%
+  );
+}
+
+.discover-page .workspace-eyebrow {
+  margin-bottom: 5px;
+  font-size: 10px;
+}
+
+.discover-page .workspace-hero h1 {
+  margin: 0 0 7px;
+  font-size: clamp(18px, 1.8vw, 21px);
+  line-height: 1.3;
+}
+
+.discover-page .workspace-hero > div > p:not(.workspace-eyebrow) {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e3edf9;
+}
+
+/* STATISTICS */
+
+.discover-page .hero-stat-grid {
+  gap: 7px;
+}
+
+.discover-page .hero-stat-card {
+  padding: 9px 12px;
+  border-radius: 9px;
+}
+
+.discover-page .hero-stat-value {
+  font-size: 20px;
+}
+
+.discover-page .hero-stat-label {
+  font-size: 10.5px;
+}
+
+/* SEARCH AND FILTER BAR */
+
+.discover-page .workspace-toolbar {
+  padding: 12px 14px;
+  gap: 12px;
+  border: 1px solid #dbe5f1;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.discover-page .workspace-toolbar h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: #123f79;
+}
+
+.discover-page .workspace-toolbar p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.discover-page .toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.discover-page .search-input,
+.discover-page .filter-select {
+  min-width: 0;
+  min-height: 35px;
+  padding: 7px 10px;
+  border: 1px solid #cddbec;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #243b53;
+  font-size: 11.5px;
+}
+
+.discover-page .toolbar-actions .search-input {
+  flex: 1 1 190px;
+}
+
+.discover-page .toolbar-actions .filter-select {
+  flex: 1 1 145px;
+}
+
+.discover-page .search-input:focus,
+.discover-page .filter-select:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+/* CLASSMATE CARD GRID */
+
+.discover-page .classmates-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 255px), 1fr)
+  );
+  align-items: stretch;
+  gap: 12px;
+}
+
+/* MAIN CLASSMATE CARD */
+
+.discover-page .network-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 9px;
+  padding: 13px;
+  border: 1px solid #dae5f2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(15, 23, 42, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.discover-page .network-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 9px 22px rgba(15, 23, 42, 0.09);
+}
+
+/* STUDENT NAME AND AVATAR */
+
+.discover-page .student-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #edf1f7;
+}
+
+.discover-page .student-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 39px;
+  width: 39px;
+  height: 39px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #dbeafe, #e9e1ff);
+  color: #254c9b;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.discover-page .student-info {
+  min-width: 0;
+}
+
+.discover-page .student-name {
+  margin: 0 0 3px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 750;
+  color: #123f79;
+  overflow-wrap: anywhere;
+}
+
+.discover-page .student-university {
+  margin: 0;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+/* MAJOR AND YEAR */
+
+.discover-page .network-meta {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 7px;
+  margin: 0;
+}
+
+.discover-page .network-meta span {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 9px;
+  border-radius: 8px;
+  font-size: 10.5px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.discover-page .network-meta span:first-child {
+  background: #e8f3ff;
+  border: 1px solid #d2e7ff;
+  color: #174d83;
+}
+
+.discover-page .network-meta span:nth-child(2) {
+  background: #f1ebff;
+  border: 1px solid #e3d8ff;
+  color: #6441a5;
+}
+
+/* SECTION INFORMATION */
+
+.discover-page .network-card
+  > p:not(.network-bio) {
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #fff4df;
+  border: 1px solid #ffe5b2;
+  color: #865b18;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* BIOGRAPHY */
+
+.discover-page .network-bio {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #526277;
+  overflow-wrap: anywhere;
+}
+
+/* COURSE BADGES */
+
+.discover-page .student-courses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.discover-page .course-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: #edf2ff;
+  border: 1px solid #dce5ff;
+  color: #3455a1;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.discover-page .course-badge-shared {
+  background: #dcfce7;
+  border-color: #bbefd0;
+  color: #166534;
+}
+
+/* SHARED COURSES */
+
+.discover-page .network-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: auto 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #e9f8f1;
+  border: 1px solid #d0eddf;
+}
+
+.discover-page .network-footer strong {
+  font-size: 10.5px;
+  color: #16704a;
+}
+
+/* SMALLER ACTION BUTTONS */
+
+.discover-page .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-height: 31px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+}
+
+.discover-page .button-primary {
+  background: #1765b4;
+  color: #fff;
+}
+
+.discover-page .button-secondary {
+  background: #eef6ff;
+  color: #16477c;
+  border: 1px solid #c9dcf4;
+}
+
+.discover-page .button-dark {
+  background: #142c4f;
+  color: #fff;
+}
+
+.discover-page .network-card > .button {
+  margin: 0;
+  align-self: stretch;
+}
+
+/* PROFILE DETAILS PANEL */
+
+.discover-page .workspace-loading-card {
+  padding: 15px;
+  border: 1px solid #d9e6f5;
+  border-radius: 12px;
+  background: #f5f9ff;
+}
+
+.discover-page .workspace-loading-card h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  color: #123f79;
+}
+
+.discover-page .workspace-loading-card h3 {
+  margin: 10px 0 6px;
+  font-size: 13px;
+  color: #16477c;
+}
+
+.discover-page .workspace-loading-card p {
+  margin: 5px 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.discover-page .workspace-loading-card .button {
+  margin-top: 9px;
+}
+
+/* TABLET AND MOBILE */
+
+@media (max-width: 900px) {
+  .discover-page .workspace-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .discover-page .toolbar-actions {
+    width: 100%;
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 600px) {
+  .discover-page {
+    padding: 10px 0 16px;
+  }
+
+  .discover-page .workspace-hero {
+    padding: 13px;
+  }
+
+  .discover-page .workspace-hero h1 {
+    font-size: 17px;
+  }
+
+  .discover-page .workspace-toolbar {
+    padding: 11px;
+  }
+
+  .discover-page .toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .discover-page .toolbar-actions .search-input,
+  .discover-page .toolbar-actions .filter-select {
+    width: 100%;
+    flex: 0 0 auto;
+  }
+
+  .discover-page .classmates-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .discover-page .network-card {
+    padding: 11px;
+  }
+}
