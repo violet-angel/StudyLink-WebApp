@@ -432,3 +432,61 @@
     padding: 11px;
   }
 }
+
+/* COMPACT STUDENT AND ACTIVE BADGES */
+
+.discover-page .network-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+}
+
+.discover-page .network-meta span,
+.discover-page .network-meta .detail-chip,
+.discover-page .network-meta .student-badge,
+.discover-page .network-meta .status-badge {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 10px;
+  font-size: 10px;
+  border-radius: 6px;
+}
+
+/* PREVENT BUTTONS FROM STRETCHING */
+
+.discover-page .network-card > .button,
+.discover-page .network-card .button {
+  width: fit-content;
+  max-width: 100%;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  min-height: 29px;
+  padding: 6px 11px;
+  font-size: 10.5px;
+  border-radius: 7px;
+}
+
+/* COMPACT ACTION ROW */
+
+.discover-page .network-card .detail-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 7px;
+}
+
+/* PREVENT UNNECESSARILY WIDE BADGES */
+
+.discover-page .course-badge {
+  width: fit-content;
+  flex: 0 0 auto;
+}
+
+.discover-page .network-footer {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
