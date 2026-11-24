@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../lib/apiClient';
 import { buildMergedCourses, getAllCatalogResources, getCatalogCourseByCode, getResourcesForCourse } from '../lib/studylinkContent';
+import mammoth from 'mammoth';
+import DOMPurify from 'dompurify';
 
 type ResourceItem = {
+  createdAt?: string;
   canDelete?: boolean;
   createdByUserId?: string | number;
   id: string | number;
@@ -87,6 +90,7 @@ function LearningHub() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSchool, setSelectedSchool] = useState('All schools');
   const [selectedType, setSelectedType] = useState('All types');
+  const [sortOrder, setSortOrder] = useState('newest');
   const [hiddenResourceIds, setHiddenResourceIds] = useState<string[]>(() => loadHiddenResources());
   const [newResourceTitle, setNewResourceTitle] = useState('');
   const [newResourceCourseId, setNewResourceCourseId] = useState('');
@@ -99,10 +103,11 @@ function LearningHub() {
   const [resourceUploading, setResourceUploading] = useState(false);
   const [resourceUploadStatus, setResourceUploadStatus] = useState<string>('');
   const [preview, setPreview] = useState<{
-    url: string;
-    title: string;
-    type: string;
-  } | null>(null);
+  url: string;
+  title: string;
+  type: string;
+  html?: string;
+} | null>(null);
 
   const [currentUser, setCurrentUser] = useState<{
     id: string | number;
@@ -153,6 +158,7 @@ function LearningHub() {
         setCatalogCourses(buildMergedCourses(courseData.courses || []));
         const libraryResourcesFromApi = (libraryData.resources || []).map((resource: any) => ({
           id: resource.id,
+          createdAt: resource.createdAt,
           createdByUserId: resource.createdByUserId,
           canDelete: resource.canDelete,
           title: resource.title,
@@ -176,6 +182,7 @@ function LearningHub() {
           ...catalogResources,
           ...(resourcesData.resources || []).map((resource: any) => ({
             id: resource.id,
+            createdAt: resource.createdAt,
             createdByUserId: resource.createdByUserId,
             canDelete: resource.canDelete,
             title: resource.title,
@@ -320,7 +327,7 @@ return Array.from(dedupe.values()).filter(
       return true;
     };
 
-    return baseResources.filter((resource) => {
+    return [...baseResources].filter((resource) => {
       const schoolMatch = selectedSchool === 'All schools' || resource.school === selectedSchool;
       const typeMatch = selectedType === 'All types' || resource.type === selectedType;
       const searchMatch = [resource.title, resource.description, resource.courseCode, resource.courseTitle, resource.school, resource.program, resource.type]
@@ -329,8 +336,29 @@ return Array.from(dedupe.values()).filter(
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
       return schoolMatch && typeMatch && searchMatch && resourceViewFilter(resource);
-    });
-  }, [baseResources, searchTerm, selectedSchool, selectedType, selectedView]);
+      }).sort((a, b) => {
+        if (sortOrder === 'title') {
+          return a.title.localeCompare(b.title);
+        }
+
+        const dateA = Date.parse(a.createdAt || '') || 0;
+        const dateB = Date.parse(b.createdAt || '') || 0;
+
+        if (sortOrder === 'oldest') {
+          return dateA - dateB;
+        }
+
+        // Default: newest first
+        return dateB - dateA;
+      });
+  }, [
+  baseResources,
+  searchTerm,
+  selectedSchool,
+  selectedType,
+  selectedView,
+  sortOrder
+]);
 
   
 
@@ -348,24 +376,58 @@ return Array.from(dedupe.values()).filter(
         }
 
         const file = await response.blob();
+const mime = file.type.split(';')[0].toLowerCase();
 
-        const supportedTypes = [
-          'application/pdf',
-          'image/png',
-          'image/jpeg',
-          'text/plain'
-        ];
+const filename = decodeURIComponent(
+  new URL(resourceUrl).pathname.split('/').pop() || ''
+).toLowerCase();
 
-        if (!supportedTypes.includes(file.type)) {
-          alert('Preview unavailable. Please use Download.');
-          return;
-        }
+// Word DOCX preview
+if (
+  mime ===
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+  filename.endsWith('.docx')
+) {
+  const result = await mammoth.convertToHtml({
+    arrayBuffer: await file.arrayBuffer()
+  });
 
-        setPreview({
-          url: URL.createObjectURL(file),
-          title: resource.title,
-          type: file.type
-        });
+  setPreview({
+    url: '',
+    title: resource.title,
+    type: 'text/html',
+    html: DOMPurify.sanitize(result.value)
+  });
+
+  return;
+}
+
+// Browser-supported previews
+const previewType =
+  mime === 'application/pdf' || filename.endsWith('.pdf')
+    ? 'application/pdf'
+    : mime === 'image/png' || filename.endsWith('.png')
+      ? 'image/png'
+      : mime === 'image/jpeg' || /\.(jpg|jpeg)$/.test(filename)
+        ? 'image/jpeg'
+        : mime === 'text/plain' || filename.endsWith('.txt')
+          ? 'text/plain'
+          : '';
+
+if (previewType) {
+  setPreview({
+    url: URL.createObjectURL(
+      new Blob([file], { type: previewType })
+    ),
+    title: resource.title,
+    type: previewType
+  });
+
+  return;
+}
+
+// Other Office formats: download the original file
+await handleDownload(resource);
 
       } catch (error) {
         alert(
@@ -595,6 +657,7 @@ return Array.from(dedupe.values()).filter(
       if (savedResource) {
         const newResourceItem = {
           id: savedResource.id,
+          createdAt: savedResource.createdAt || new Date().toISOString(),
           createdByUserId: savedResource.createdByUserId,
           title: savedResource.title,
           type: savedResource.type || 'Resource',
@@ -723,7 +786,19 @@ return Array.from(dedupe.values()).filter(
               </button>
             </div>
 
-            {preview.type.startsWith('image/') ? (
+            {preview.html !== undefined ? (
+              <div
+                style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: '24px',
+                  background: '#ffffff',
+                  color: '#111827',
+                  lineHeight: 1.7
+                }}
+                dangerouslySetInnerHTML={{ __html: preview.html }}
+              />
+            ) : preview.type.startsWith('image/') ? (
               <img
                 src={preview.url}
                 alt={preview.title}
@@ -920,6 +995,16 @@ return Array.from(dedupe.values()).filter(
             {typeOptions.map((type) => (
               <option key={type} value={type}>{type}</option>
             ))}
+          </select>
+          <select
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value)}
+            className="filter-select"
+            aria-label="Sort learning resources"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="title">Title A–Z</option>
           </select>
         </section>
 
