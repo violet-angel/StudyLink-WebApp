@@ -140,7 +140,7 @@ export default function DirectMessages() {
   };
 
   return (
-    <section className="workspace-page student-dashboard">
+    <section className="workspace-page student-dashboard dm-page">
       <div className="container student-dashboard-stack">
 
         <header className="sd-hero">
@@ -177,12 +177,7 @@ export default function DirectMessages() {
         )}
 
         <div
-          className="sd-panel"
-          style={{
-            maxHeight: 480,
-            minHeight: 250,
-            overflowY: 'auto'
-          }}
+          className="sd-panel dm-conversation"
           aria-live="polite"
         >
           {loading ? (
@@ -197,23 +192,18 @@ export default function DirectMessages() {
               return (
                 <article
                   key={message.id}
-                  className="sd-list-item"
+                  className={`sd-list-item dm-message-row ${
+                    mine ? 'dm-sent' : 'dm-received'
+                  }`}
                   style={{
                     justifyContent: mine
                       ? 'flex-end'
                       : 'flex-start'
                   }}
                 >
-                  <div
-                    style={{
-                      maxWidth: '80%',
-                      padding: 12,
-                      borderRadius: 12,
-                      background: mine
-                        ? '#dbeafe'
-                        : '#f1f5f9'
-                    }}
-                  >
+                  <div className={`dm-bubble ${
+                    mine ? 'dm-bubble-sent' : 'dm-bubble-received'
+                  }`}>
                     <strong>
                       {mine ? 'You' : student?.name || 'Classmate'}
                     </strong>
@@ -241,12 +231,7 @@ export default function DirectMessages() {
 
         <form
           onSubmit={submit}
-          className="sd-panel"
-          style={{
-            display: 'flex',
-            gap: 12,
-            flexWrap: 'wrap'
-          }}
+          className="sd-panel dm-compose"
         >
           <label
             htmlFor="direct-message-body"
