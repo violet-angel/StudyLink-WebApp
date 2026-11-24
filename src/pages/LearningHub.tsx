@@ -269,13 +269,36 @@ const availableUploadGroups = studentGroups;
       category: getResourceCategory(resource),
     }));
 
-    const dedupe = new Map<string, ResourceItem>();
-    [...savedResources, ...recommendedResources].forEach((resource) => {
-      dedupe.set(String(resource.id), resource);
-    });
+    const sharedResources = allResources.filter(
+  (resource) => !resource.isCatalog
+);
 
-    return Array.from(dedupe.values()).filter((resource) => !hiddenResourceIds.includes(String(resource.id)));
-  }, [apiLibraryResources, enrolledCourses, hiddenResourceIds]);
+const dedupe = new Map<string, ResourceItem>();
+
+[
+  ...recommendedResources,
+  ...savedResources,
+  ...sharedResources
+].forEach((resource) => {
+  const key = resource.isCatalog
+    ? `catalog:${resource.id}`
+    : `shared:${resource.id}`;
+
+  dedupe.set(key, resource);
+});
+
+return Array.from(dedupe.values()).filter(
+  (resource) =>
+    resource.isCatalog ||
+    !hiddenResourceIds.includes(String(resource.id))
+);
+
+}, [
+  apiLibraryResources,
+  enrolledCourses,
+  allResources,
+  hiddenResourceIds
+]);
 
   const baseResources = selectedView === 'library' ? (libraryResources.length > 0 ? libraryResources : allResources) : allResources;
 
