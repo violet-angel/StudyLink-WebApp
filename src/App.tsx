@@ -34,6 +34,7 @@ import './styles/CoursesDesign.css';
 import './styles/SessionsDesign.css';
 import './styles/DirectMessagesDesign.css';
 import './styles/DiscoverClassmatesDesign.css';
+import './styles/GlobalButtonEffects.css';
 import { getStoredUser } from './lib/session';
 import DirectMessages from './pages/DirectMessages';
 

@@ -1,0 +1,167 @@
+
+/* ========================================
+   STUDYLINK - GLOBAL BUTTON EFFECTS
+   ======================================== */
+
+/* 1. ALL STANDARD BUTTONS */
+
+button:not(:disabled),
+a.button,
+a.action-link,
+a.text-button,
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* 2. SMOOTH ANIMATION */
+
+button,
+.button,
+.action-link,
+.text-button,
+.hub-tab-button,
+[role="button"] {
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    filter 0.18s ease;
+}
+
+/* 3. HOVER EFFECT FOR ALL BUTTONS */
+
+button:not(:disabled):hover,
+a.button:hover,
+a.action-link:hover,
+a.text-button:hover,
+[role="button"]:not([aria-disabled="true"]):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 13px rgba(23, 101, 180, 0.18);
+  filter: brightness(0.96);
+}
+
+/* 4. PRESSED / CLICK EFFECT */
+
+button:not(:disabled):active,
+a.button:active,
+a.action-link:active,
+a.text-button:active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+}
+
+/* 5. PRIMARY BLUE BUTTONS */
+
+.button-primary:not(:disabled):hover,
+a.button-primary:hover {
+  background-color: #104e92;
+  border-color: #104e92;
+  color: #ffffff;
+}
+
+/* 6. SECONDARY BUTTONS */
+
+.button-secondary:not(:disabled):hover,
+a.button-secondary:hover {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #123f79;
+}
+
+/* 7. DARK BUTTONS */
+
+.button-dark:not(:disabled):hover,
+a.button-dark:hover {
+  background-color: #243b63;
+  color: #ffffff;
+}
+
+/* 8. TEXT / ACTION BUTTONS */
+
+.action-link:not(:disabled):hover,
+.text-button:not(:disabled):hover {
+  text-decoration: none;
+  border-color: #93c5fd;
+}
+
+/* 9. NAVIGATION LINKS */
+
+.sidebar a,
+.mobile-nav a,
+.bottom-nav a {
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+  cursor: pointer;
+}
+
+.sidebar a:hover,
+.mobile-nav a:hover,
+.bottom-nav a:hover {
+  transform: translateX(3px);
+}
+
+/* 10. FOCUS EFFECT - KEYBOARD ACCESSIBILITY */
+
+button:focus-visible,
+.button:focus-visible,
+.action-link:focus-visible,
+.text-button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+
+/* 11. DISABLED BUTTONS */
+
+button:disabled,
+.button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+  filter: none;
+}
+
+/* 12. PREVENT STRETCHED BUTTONS
+   Applies to button rows, not every element */
+
+.detail-action-row > .button,
+.group-actions > .button,
+.course-card-actions > .button,
+.session-actions-column > .button,
+.form-actions > .button,
+.detail-action-row > .action-link {
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+}
+
+/* 13. RESPECT REDUCED-MOTION SETTINGS */
+
+@media (prefers-reduced-motion: reduce) {
+  button,
+  .button,
+  .action-link,
+  .text-button,
+  .hub-tab-button,
+  [role="button"],
+  .sidebar a,
+  .mobile-nav a,
+  .bottom-nav a {
+    transition: none !important;
+  }
+
+  button:hover,
+  .button:hover,
+  .action-link:hover,
+  .text-button:hover,
+  [role="button"]:hover {
+    transform: none !important;
+  }
+}
