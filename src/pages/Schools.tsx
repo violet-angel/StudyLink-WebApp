@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { getCatalogSchools, getProgramsForSchool } from '../lib/studylinkContent';
+import '../styles/SchoolsDesign.css';
 
 function Schools() {
   const [searchParams] = useSearchParams();

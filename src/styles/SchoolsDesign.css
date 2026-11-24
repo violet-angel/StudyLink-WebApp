@@ -1,0 +1,411 @@
+
+/* STUDYLINK — SCHOOLS PAGE */
+
+.schools-page {
+  --school-blue: #1765b4;
+  --school-navy: #123f79;
+  --school-border: #dbe6f4;
+  font-size: 12px;
+  color: #263b58;
+  padding: 12px 0 22px;
+}
+
+.schools-page,
+.schools-page * {
+  box-sizing: border-box;
+}
+
+.schools-page .workspace-stack {
+  gap: 12px;
+}
+
+/* COMPACT HEADER */
+
+.schools-page .workspace-hero-compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(170px, .65fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+  padding: 17px 20px;
+  border-radius: 13px;
+  background: linear-gradient(
+    120deg, #10294b, #2453a1 60%, #087f8c
+  );
+  color: #fff;
+}
+
+.schools-page .workspace-eyebrow {
+  margin: 0 0 5px;
+  color: #bceeff;
+  font-size: 10px;
+  letter-spacing: .07em;
+}
+
+.schools-page .workspace-hero-compact h1 {
+  margin: 0 0 8px;
+  max-width: 780px;
+  font-size: clamp(17px, 1.7vw, 21px);
+  font-weight: 750;
+  line-height: 1.35;
+  color: #fff;
+}
+
+.schools-page .workspace-hero-compact .workspace-lead {
+  margin: 0;
+  max-width: 780px;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: #e3edf9;
+}
+
+/* STATISTICS */
+
+.schools-page .hero-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.schools-page .hero-stat-card {
+  min-width: 0;
+  padding: 11px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .13);
+  border: 1px solid rgba(255, 255, 255, .22);
+}
+
+.schools-page .hero-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.schools-page .hero-stat-label {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #e3edf9;
+}
+
+/* BROWSE BY SCHOOL */
+
+.schools-page .workspace-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 15px;
+  border: 1px solid var(--school-border);
+  border-radius: 11px;
+  background: #f0f6ff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .04);
+}
+
+.schools-page .workspace-toolbar > div {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.schools-page .workspace-toolbar h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  color: var(--school-navy);
+}
+
+.schools-page .workspace-toolbar p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #5c6f89;
+}
+
+/* SCHOOL CARDS */
+
+.schools-page .groups-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill, minmax(min(100%, 245px), 1fr)
+  );
+  gap: 12px;
+  align-items: stretch;
+}
+
+.schools-page .polished-group-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid #dce6f3;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .05);
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    border-color .2s ease;
+}
+
+.schools-page .polished-group-card:nth-child(4n+1) {
+  border-top: 3px solid #2563eb;
+}
+
+.schools-page .polished-group-card:nth-child(4n+2) {
+  border-top: 3px solid #7c3aed;
+}
+
+.schools-page .polished-group-card:nth-child(4n+3) {
+  border-top: 3px solid #059669;
+}
+
+.schools-page .polished-group-card:nth-child(4n+4) {
+  border-top: 3px solid #e59b27;
+}
+
+.schools-page .polished-group-card:hover {
+  transform: translateY(-3px);
+  border-color: #a5c7ef;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, .1);
+}
+
+.schools-page .polished-group-card h3 {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 750;
+  color: #123f79;
+  overflow-wrap: anywhere;
+}
+
+/* PROGRAM COUNT */
+
+.schools-page .polished-group-card .group-course {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: #e8f3ff;
+  border: 1px solid #d1e7ff;
+  color: #1d5c9d;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+/* COURSE DESCRIPTION */
+
+.schools-page .polished-group-card > p:not(.group-course) {
+  margin: 0;
+  padding: 9px 10px;
+  width: 100%;
+  border-radius: 8px;
+  background: #f2ecff;
+  border: 1px solid #e7ddff;
+  color: #5b4b85;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+/* CARD ACTIONS */
+
+.schools-page .group-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 7px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 5px;
+}
+
+/* COMPACT INTERACTIVE BUTTONS */
+
+.schools-page .button,
+.schools-page a.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 31px;
+  padding: 7px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform .16s ease,
+    background-color .18s ease,
+    color .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease;
+}
+
+.schools-page .button-primary {
+  color: #fff;
+  background: #1765b4;
+  border: 1px solid #1765b4;
+}
+
+.schools-page .button-secondary {
+  background: #edf5ff;
+  border: 1px solid #c9def8;
+  color: #16477c;
+}
+
+.schools-page .button-primary:hover {
+  background: #104e92;
+  border-color: #104e92;
+  color: white;
+}
+
+.schools-page .button-secondary:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #103f75;
+}
+
+.schools-page .button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(23, 101, 180, .17);
+}
+
+.schools-page .button:active {
+  transform: scale(.97);
+  box-shadow: none;
+}
+
+.schools-page .button:focus-visible {
+  outline: 3px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+/* SELECTED SCHOOL PROGRAMS */
+
+.schools-page .detail-panel {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #dbe6f3;
+  background: #fff;
+}
+
+.schools-page .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.schools-page .section-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #123f79;
+}
+
+.schools-page .detail-card-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill, minmax(min(100%, 230px), 1fr)
+  );
+  gap: 10px;
+}
+
+.schools-page .detail-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #d5e7fb;
+  border-radius: 9px;
+  background: #ebf5ff;
+}
+
+.schools-page .detail-summary-card:nth-child(even) {
+  background: #f2ecff;
+  border-color: #e4dafa;
+}
+
+.schools-page .detail-summary-card strong {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #16477c;
+  overflow-wrap: anywhere;
+}
+
+.schools-page .detail-summary-card p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #526277;
+}
+
+.schools-page .detail-summary-card .button {
+  margin-top: auto;
+}
+
+/* TABLET */
+
+@media (max-width: 900px) {
+  .schools-page .workspace-hero-compact {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* MOBILE */
+
+@media (max-width: 600px) {
+  .schools-page {
+    padding: 10px 0 16px;
+  }
+
+  .schools-page .workspace-hero-compact {
+    padding: 13px;
+  }
+
+  .schools-page .workspace-hero-compact h1 {
+    font-size: 17px;
+  }
+
+  .schools-page .hero-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schools-page .workspace-toolbar {
+    padding: 11px;
+  }
+
+  .schools-page .groups-grid,
+  .schools-page .detail-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .schools-page .polished-group-card {
+    padding: 12px;
+  }
+}
+
+/* ACCESSIBLE MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+  .schools-page .button,
+  .schools-page .polished-group-card {
+    transition: none;
+  }
+}
